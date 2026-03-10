@@ -103,11 +103,26 @@
 
         await wait(1500);
 
-        const sbcTiles = document.querySelectorAll('.ut-tile-transfer-market, .ut-sbc-set-tile, .sbc-tile, [class*="sbc"][class*="tile"]');
+        // Try multiple selector strategies for SBC tiles
+        let sbcTiles = document.querySelectorAll('.ut-sbc-set-tile');
+        if (sbcTiles.length === 0) {
+            sbcTiles = document.querySelectorAll('.sbc-set-tile, [class*="sbc-set"]');
+        }
+        if (sbcTiles.length === 0) {
+            sbcTiles = document.querySelectorAll('.ut-tile-transfer-market, .sbc-tile, [class*="tile"][class*="sbc"]');
+        }
 
         sbcList = [];
         sbcTiles.forEach((tile, index) => {
-            const name = tile.querySelector('.title, .ut-tile-content-title, h2, h3')?.textContent.trim() || `SBC ${index + 1}`;
+            // Try multiple selector strategies for title
+            let name = tile.querySelector('.title')?.textContent.trim();
+            if (!name) name = tile.querySelector('.ut-sbc-set-tile-name')?.textContent.trim();
+            if (!name) name = tile.querySelector('.set-name, .sbc-name')?.textContent.trim();
+            if (!name) name = tile.querySelector('h2, h3, h4')?.textContent.trim();
+            if (!name) name = tile.querySelector('[class*="title"], [class*="name"]')?.textContent.trim();
+            if (!name) name = tile.textContent.trim().split('\n')[0].trim();
+            if (!name || name.length === 0) name = `SBC ${index + 1}`;
+
             const isCompleted = tile.querySelector('.completed, .checkmark, [class*="complete"]');
 
             if (!isCompleted) {
@@ -773,7 +788,42 @@
 
         document.getElementById('close-btn').addEventListener('click', () => {
             stopScript();
-            ui.remove();
+            ui.style.display = 'none';
+            // Show reopen button
+            if (!document.getElementById('sbc-reopen-btn')) {
+                const reopenBtn = document.createElement('div');
+                reopenBtn.id = 'sbc-reopen-btn';
+                reopenBtn.innerHTML = '🎯';
+                reopenBtn.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    width: 50px;
+                    height: 50px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 24px;
+                    cursor: pointer;
+                    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+                    z-index: 999999;
+                    transition: all 0.3s;
+                `;
+                reopenBtn.addEventListener('mouseenter', () => {
+                    reopenBtn.style.transform = 'scale(1.1)';
+                });
+                reopenBtn.addEventListener('mouseleave', () => {
+                    reopenBtn.style.transform = 'scale(1)';
+                });
+                reopenBtn.addEventListener('click', () => {
+                    ui.style.display = 'block';
+                    reopenBtn.remove();
+                });
+                document.body.appendChild(reopenBtn);
+            }
         });
     }
 
