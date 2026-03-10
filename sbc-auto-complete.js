@@ -221,7 +221,7 @@
             // Check if SBC is completed
             const tileText = tile.textContent.toLowerCase();
             const isRepeatable = tileText.includes('repeatable:');
-            
+
             // If repeatable, always available regardless of completion count
             let isCompleted = false;
             if (!isRepeatable) {
@@ -295,38 +295,38 @@
 
     // ========== استخدام Smart Build ==========
     async function usePaletoolsSmartBuild() {
-        log('🤖 استخدام Smart Build من Paletools...');
+        log('🤖 استخدام Smart Builder من Paletools...');
 
-        // Look for Paletools Smart Build button
-        const smartBuildSelectors = [
-            'button:contains("Smart Build")',
-            'button[class*="smart"]',
-            '.paletools-smart-build',
-            '[data-paletools="smart-build"]',
-            'button:contains("Auto")',
-            'button:contains("Build")'
-        ];
+        await wait(1000); // Wait for page to load
 
-        // Try to find Smart Build button
-        for (const selector of smartBuildSelectors) {
-            const button = findElementByText('Smart Build', 'button') ||
-                findElementByText('Auto Build', 'button') ||
-                document.querySelector(selector);
+        // Look for Paletools Smart Builder button (case-insensitive)
+        const button = findElementByText('Smart Builder', 'button') ||
+            findElementByText('Smart Build', 'button') ||
+            findElementByText('Auto Build', 'button') ||
+            findElementByText('Builder', 'button') ||
+            document.querySelector('button[class*="smart"]') ||
+            document.querySelector('button[class*="paletools"]') ||
+            document.querySelector('[data-paletools*="smart"]');
 
-            if (button) {
-                button.click();
-                log('✅ تم تشغيل Smart Build');
-                await wait(CONFIG.WAIT_TIME * 2);
-                return true;
-            }
+        if (button) {
+            log('✅ تم العثور على زر Smart Builder');
+            button.click();
+            log('⏳ انتظار اكتمال البناء...');
+            
+            // Wait for Smart Builder to complete (usually takes 5-15 seconds)
+            await wait(CONFIG.WAIT_TIME * 8); // 16 seconds
+            
+            log('✅ تم اكتمال Smart Builder');
+            return true;
         }
 
-        // Alternative: Try keyboard shortcut if Paletools has one
+        log('⚠️ لم يتم العثور على زر Smart Builder - تأكد أن Paletools شغال');
+        
+        // Try keyboard shortcut as fallback
         document.dispatchEvent(new KeyboardEvent('keydown', { key: 'b', ctrlKey: true }));
-        await wait(CONFIG.WAIT_TIME);
-
-        log('⚠️ Smart Build قد يكون تم تشغيله (أو غير متوفر)');
-        return true;
+        await wait(CONFIG.WAIT_TIME * 8);
+        
+        return false;
     }
 
     // ========== تقديم SBC ==========
@@ -592,7 +592,11 @@
         await selectAndOpenSBC(sbcIndex);
 
         // 4. Use Smart Build
-        await usePaletoolsSmartBuild();
+        const buildSuccess = await usePaletoolsSmartBuild();
+        if (!buildSuccess) {
+            log('❌ فشل Smart Builder - تأكد أن Paletools شغال');
+            return false;
+        }
 
         // 5. Submit SBC
         const submitted = await submitSBC();
