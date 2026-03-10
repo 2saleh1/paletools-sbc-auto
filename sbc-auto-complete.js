@@ -112,82 +112,96 @@
             sbcTiles = document.querySelectorAll('.ut-tile-transfer-market, .sbc-tile, [class*="tile"][class*="sbc"]');
         }
 
+        console.log(`=== DEBUG: Found ${sbcTiles.length} SBC tiles ===`);
+
         sbcList = [];
         sbcTiles.forEach((tile, index) => {
             let name = '';
             
-            // Strategy 1: Look for direct title in specific EA structure
-            const titleContainer = tile.querySelector('.ut-sbc-set-tile-info, .tile-info');
-            if (titleContainer) {
-                const titleEl = titleContainer.querySelector('.title, h2, h3');
-                if (titleEl) {
-                    // Get only the first text node to avoid getting child elements text
-                    for (const node of titleEl.childNodes) {
+            // Debug: Log the tile structure
+            console.log(`\n--- Tile ${index + 1} ---`);
+            console.log('HTML:', tile.innerHTML.substring(0, 200));
+            console.log('Classes:', tile.className);
+            
+            // STRATEGY 1: Search in all possible text containers
+            const allTextElements = tile.querySelectorAll('*');
+            for (const el of allTextElements) {
+                const classList = Array.from(el.classList);
+                const hasTitle = classList.some(c => 
+                    c.includes('title') || 
+                    c.includes('name') || 
+                    c.includes('label')
+                );
+                
+                if (hasTitle) {
+                    const text = el.textContent.trim();
+                    console.log(`  Found title element (${el.tagName}.${el.className}): "${text}"`);
+                    
+                    // Try to get first text node
+                    for (const node of el.childNodes) {
                         if (node.nodeType === Node.TEXT_NODE) {
-                            const text = node.textContent.trim();
-                            if (text && !text.match(/^\d+\/\d+/)) {
-                                name = text;
+                            const nodeText = node.textContent.trim();
+                            if (nodeText && nodeText.length > 2 && !nodeText.match(/^\d+\/\d+/)) {
+                                name = nodeText;
+                                console.log(`  ✓ Using text node: "${name}"`);
                                 break;
                             }
+                        }
+                    }
+                    
+                    if (name) break;
+                    
+                    // Fallback: use innerText but clean it
+                    if (!name && text.length > 2 && text.length < 100) {
+                        const cleanText = text.split('\n')[0].trim();
+                        if (!cleanText.match(/^\d+\/\d+/)) {
+                            name = cleanText;
+                            console.log(`  ✓ Using cleaned text: "${name}"`);
+                            break;
                         }
                     }
                 }
             }
             
-            // Strategy 2: Direct .title class with text node extraction
+            // STRATEGY 2: Get attribute-based data
             if (!name) {
-                const titleEl = tile.querySelector('.title');
-                if (titleEl) {
-                    for (const node of titleEl.childNodes) {
-                        if (node.nodeType === Node.TEXT_NODE) {
-                            const text = node.textContent.trim();
-                            if (text && !text.match(/^\d+\/\d+/)) {
-                                name = text;
-                                break;
-                            }
-                        }
-                    }
+                const dataName = tile.getAttribute('data-name') || 
+                                tile.getAttribute('data-title') ||
+                                tile.getAttribute('aria-label');
+                if (dataName && dataName.length > 2) {
+                    name = dataName;
+                    console.log(`  ✓ Using data attribute: "${name}"`);
                 }
             }
             
-            // Strategy 3: SBC specific name classes
-            if (!name) {
-                const nameEl = tile.querySelector('.ut-sbc-set-tile-name, .set-name, .sbc-name, [class*="tile-name"]');
-                if (nameEl) {
-                    name = nameEl.textContent.trim();
-                }
-            }
-            
-            // Strategy 4: Extract from full text intelligently
+            // STRATEGY 3: Smart text extraction from whole tile
             if (!name) {
                 const fullText = tile.textContent.trim();
-                // Split by newlines and find first line that doesn't match common patterns
                 const lines = fullText.split('\n')
                     .map(l => l.trim())
-                    .filter(l => l.length > 0)
-                    .filter(l => !l.match(/^\d+\/\d+/)) // Remove "0/5" patterns
-                    .filter(l => !l.match(/^(SBCs?|Challenges?|Complete|Expires?)$/i)); // Remove common words
+                    .filter(l => l.length > 2)
+                    .filter(l => !l.match(/^\d+\/\d+/))
+                    .filter(l => !l.match(/^(SBCs?|Challenges?|Complete|Expires?|Days?|Hours?|Minutes?)$/i));
                 
                 if (lines.length > 0) {
                     name = lines[0];
+                    console.log(`  ✓ Using first line: "${name}"`);
                 }
             }
             
-            // Deep clean the name
+            // Clean up the name
             if (name) {
-                // Remove "X/Y SBC(s)" patterns
-                name = name.replace(/\d+\/\d+\s*SBCs?/gi, '');
-                // Remove extra whitespace
+                name = name.replace(/\d+\/\d+\s*SBCs?/gi, '').trim();
                 name = name.replace(/\s+/g, ' ').trim();
-                // Take only first line if still has newlines
                 name = name.split('\n')[0].trim();
-                // Remove trailing/leading special characters
-                name = name.replace(/^[\s:|\-–—]+|[\s:|\-–—]+$/g, '');
             }
             
             // Fallback
             if (!name || name.length < 3) {
-                name = `SBC ${index + 1}`;
+                name = `[Unknown SBC ${index + 1}]`;
+                console.log(`  ✗ No name found, using fallback`);
+            } else {
+                console.log(`  ✅ Final name: "${name}"`);
             }
 
             const isCompleted = tile.querySelector('.completed, .checkmark, [class*="complete"]');
@@ -198,28 +212,18 @@
                     name: name,
                     index: sbcList.length
                 });
-                
-                // Debug log to help see what we extracted
-                console.log(`SBC Found: "${name}"`);
             }
         });
 
+        console.log(`\n=== Total SBCs loaded: ${sbcList.length} ===\n`);
         log(`📊 تم العثور على ${sbcList.length} SBC متاح`);
-        return sbcList;
-    }
-
-    // ========== اختيار وفتح SBC ==========
-    async function selectAndOpenSBC(sbcIndex) {
-        if (!sbcList[sbcIndex]) {
-            log('❌ SBC غير موجود');
-            return false;
+        
+        // Show alert with first few SBC names for verification
+        if (sbcList.length > 0) {
+            const sampleNames = sbcList.slice(0, 3).map(s => s.name).join('\n');
+            log(`أول 3 أسماء:\n${sampleNames}`);
         }
-
-        currentSBC = sbcList[sbcIndex];
-        log(`🎯 فتح SBC: ${currentSBC.name}`);
-
-        currentSBC.element.click();
-        await wait(CONFIG.WAIT_TIME);
+        
 
         // Click on first challenge if multiple challenges exist
         const challenges = document.querySelectorAll('.ut-sbc-challenge-tile, .challenge-tile');
@@ -864,13 +868,13 @@
         document.getElementById('refresh-btn').addEventListener('click', async () => {
             // Check if we're in SBC section
             const inSBCSection = document.querySelector('.ut-sbc-set-tile, .sbc-set-tile, [class*="sbc-set"]');
-            
+
             if (!inSBCSection) {
                 alert('⚠️ تنبيه مهم\n\nيجب الدخول إلى صفحة SBC أولاً!\n\n1. اضغط على أيقونة SBC في القائمة\n2. ثم اضغط "تحميل قائمة SBCs"');
                 log('⚠️ يجب الدخول إلى صفحة SBC أولاً');
                 return;
             }
-            
+
             log('🔄 جاري تحميل قائمة SBCs...');
             await wait(500);
             await getSBCList();
