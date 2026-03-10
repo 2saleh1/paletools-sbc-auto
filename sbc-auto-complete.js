@@ -810,21 +810,31 @@
                     background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
                     border: 1px solid rgba(59, 130, 246, 0.3);
                     border-radius: 12px;
-                    padding: 24px;
+                    padding: 16px;
                     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(96, 165, 250, 0.2);
                     z-index: 999999;
                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
                     color: #f8fafc;
-                    min-width: 360px;
-                    max-width: 400px;
-                    max-height: 90vh;
+                    min-width: 280px;
+                    max-width: 320px;
+                    max-height: 70vh;
                     overflow-y: auto;
                     backdrop-filter: blur(10px);
+                    opacity: 0.95;
+                    transition: opacity 0.3s;
+                }
+                
+                #sbc-auto-ui:hover {
+                    opacity: 1;
+                }
+                
+                #sbc-auto-ui.minimized {
+                    display: none;
                 }
                 
                 #sbc-auto-ui h3 {
-                    margin: 0 0 20px 0;
-                    font-size: 20px;
+                    margin: 0 0 12px 0;
+                    font-size: 16px;
                     font-weight: 700;
                     text-align: center;
                     background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
@@ -837,16 +847,16 @@
                 #sbc-auto-ui .stats {
                     background: rgba(15, 23, 42, 0.6);
                     border: 1px solid rgba(59, 130, 246, 0.2);
-                    border-radius: 10px;
-                    padding: 16px;
-                    margin-bottom: 16px;
+                    border-radius: 8px;
+                    padding: 10px;
+                    margin-bottom: 10px;
                 }
                 
                 #sbc-auto-ui .stat-item {
                     display: flex;
                     justify-content: space-between;
-                    margin: 8px 0;
-                    font-size: 13px;
+                    margin: 5px 0;
+                    font-size: 11px;
                 }
                 
                 #sbc-auto-ui .stat-item .label {
@@ -855,22 +865,26 @@
                 
                 #sbc-auto-ui .stat-item .value {
                     font-weight: bold;
-                    font-size: 14px;
+                    font-size: 12px;
                 }
                 
                 #sbc-auto-ui .sbc-selector {
-                    margin-bottom: 15px;
+                    margin-bottom: 10px;
+                }
+                
+                #sbc-auto-ui .sbc-selector label {
+                    font-size: 11px;
                 }
                 
                 #sbc-auto-ui select {
                     width: 100%;
-                    padding: 12px;
+                    padding: 8px;
                     border: 1px solid rgba(59, 130, 246, 0.3);
-                    border-radius: 8px;
-                    font-size: 14px;
+                    border-radius: 6px;
+                    font-size: 12px;
                     background: rgba(15, 23, 42, 0.8);
                     color: #f8fafc;
-                    margin-top: 8px;
+                    margin-top: 5px;
                     cursor: pointer;
                     transition: all 0.3s;
                 }
@@ -888,13 +902,13 @@
                 
                 #sbc-auto-ui input[type="number"] {
                     width: 100%;
-                    padding: 12px;
+                    padding: 8px;
                     border: 1px solid rgba(59, 130, 246, 0.3);
-                    border-radius: 8px;
-                    font-size: 14px;
+                    border-radius: 6px;
+                    font-size: 12px;
                     background: rgba(15, 23, 42, 0.8);
                     color: #f8fafc;
-                    margin-top: 8px;
+                    margin-top: 5px;
                     transition: all 0.3s;
                 }
                 
@@ -906,15 +920,15 @@
                 
                 #sbc-auto-ui button {
                     width: 100%;
-                    padding: 13px;
+                    padding: 8px;
                     border: none;
-                    border-radius: 8px;
-                    font-size: 14px;
+                    border-radius: 6px;
+                    font-size: 12px;
                     font-weight: 600;
                     cursor: pointer;
                     transition: all 0.3s;
-                    margin: 6px 0;
-                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+                    margin: 4px 0;
+                    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
                 }
                 
                 #sbc-auto-ui .btn-start {
@@ -950,11 +964,22 @@
                     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
                 }
                 
+                #sbc-auto-ui .btn-minimize {
+                    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                    color: white;
+                }
+                
+                #sbc-auto-ui .btn-minimize:hover {
+                    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+                }
+                
                 #sbc-auto-ui .btn-close {
                     background: rgba(71, 85, 105, 0.5);
                     color: #cbd5e1;
-                    font-size: 13px;
-                    padding: 10px;
+                    font-size: 11px;
+                    padding: 6px;
                     border: 1px solid rgba(148, 163, 184, 0.2);
                 }
                 
@@ -967,34 +992,34 @@
                 #sbc-auto-ui .settings {
                     background: rgba(15, 23, 42, 0.6);
                     border: 1px solid rgba(59, 130, 246, 0.2);
-                    border-radius: 10px;
-                    padding: 14px;
-                    margin-bottom: 16px;
-                    font-size: 13px;
+                    border-radius: 8px;
+                    padding: 10px;
+                    margin-bottom: 10px;
+                    font-size: 11px;
                 }
                 
                 #sbc-auto-ui .setting-item {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    margin: 8px 0;
+                    margin: 5px 0;
                 }
                 
                 #sbc-auto-ui input[type="checkbox"] {
-                    width: 20px;
-                    height: 20px;
+                    width: 16px;
+                    height: 16px;
                 }
                 
                 #sbc-auto-ui .log-header {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    margin-top: 12px;
-                    margin-bottom: 6px;
+                    margin-top: 8px;
+                    margin-bottom: 4px;
                 }
                 
                 #sbc-auto-ui .log-title {
-                    font-size: 12px;
+                    font-size: 10px;
                     font-weight: 600;
                     color: #94a3b8;
                 }
@@ -1003,7 +1028,8 @@
                     background: rgba(59, 130, 246, 0.2);
                     color: #60a5fa;
                     border: 1px solid rgba(59, 130, 246, 0.3);
-                    padding: 6px 12px;
+                    padding: 4px 8px;
+                    font-size: 10px;
                     font-size: 11px;
                     border-radius: 6px;
                     cursor: pointer;
@@ -1022,12 +1048,12 @@
                 #sbc-auto-ui .log {
                     background: rgba(2, 6, 23, 0.8);
                     border: 1px solid rgba(59, 130, 246, 0.2);
-                    border-radius: 8px;
-                    padding: 12px;
-                    max-height: 300px;
+                    border-radius: 6px;
+                    padding: 8px;
+                    max-height: 180px;
                     overflow-y: auto;
                     overflow-x: auto;
-                    font-size: 11px;
+                    font-size: 9px;
                     font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
                     word-wrap: break-word;
                     white-space: pre-wrap;
@@ -1036,12 +1062,13 @@
                 }
                 
                 #sbc-auto-ui .log-entry {
-                    margin: 3px 0;
-                    padding: 3px 0;
+                    margin: 2px 0;
+                    padding: 2px 0;
                     border-bottom: 1px solid rgba(59, 130, 246, 0.1);
                     color: #cbd5e1;
                     word-break: break-word;
                     overflow-wrap: break-word;
+                    line-height: 1.3;
                 }
             </style>
             
@@ -1096,6 +1123,7 @@
             <button class="btn-refresh" id="refresh-btn">🔄 تحميل قائمة SBCs</button>
             <button class="btn-start" id="start-btn">▶️ بدء التشغيل التلقائي</button>
             <button class="btn-stop" id="stop-btn" style="display:none">⏸️ إيقاف</button>
+            <button class="btn-minimize" id="minimize-btn">➖ تصغير</button>
             <button class="btn-close" id="close-btn">✖️ إغلاق</button>
             
             <div class="log-header">
@@ -1201,6 +1229,45 @@
                     alert('فشل النسخ');
                 }
                 document.body.removeChild(textArea);
+            }
+        });
+
+        document.getElementById('minimize-btn').addEventListener('click', () => {
+            ui.classList.add('minimized');
+            // Show reopen button
+            if (!document.getElementById('sbc-reopen-btn')) {
+                const reopenBtn = document.createElement('div');
+                reopenBtn.id = 'sbc-reopen-btn';
+                reopenBtn.innerHTML = '🎯';
+                reopenBtn.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    width: 45px;
+                    height: 45px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 20px;
+                    cursor: pointer;
+                    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+                    z-index: 999999;
+                    transition: all 0.3s;
+                `;
+                reopenBtn.addEventListener('mouseenter', () => {
+                    reopenBtn.style.transform = 'scale(1.1)';
+                });
+                reopenBtn.addEventListener('mouseleave', () => {
+                    reopenBtn.style.transform = 'scale(1)';
+                });
+                reopenBtn.addEventListener('click', () => {
+                    ui.classList.remove('minimized');
+                    reopenBtn.remove();
+                });
+                document.body.appendChild(reopenBtn);
             }
         });
 
