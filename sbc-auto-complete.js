@@ -114,13 +114,38 @@
 
         sbcList = [];
         sbcTiles.forEach((tile, index) => {
-            // Try multiple selector strategies for title
-            let name = tile.querySelector('.title')?.textContent.trim();
-            if (!name) name = tile.querySelector('.ut-sbc-set-tile-name')?.textContent.trim();
-            if (!name) name = tile.querySelector('.set-name, .sbc-name')?.textContent.trim();
-            if (!name) name = tile.querySelector('h2, h3, h4')?.textContent.trim();
-            if (!name) name = tile.querySelector('[class*="title"], [class*="name"]')?.textContent.trim();
-            if (!name) name = tile.textContent.trim().split('\n')[0].trim();
+            // Try to find the actual title element, not the entire tile text
+            let name = '';
+            
+            // Strategy 1: Direct title class
+            const titleEl = tile.querySelector('.title');
+            if (titleEl) {
+                name = titleEl.childNodes[0]?.textContent?.trim() || titleEl.textContent.trim();
+            }
+            
+            // Strategy 2: SBC specific classes
+            if (!name) {
+                const nameEl = tile.querySelector('.ut-sbc-set-tile-name, .set-name, .sbc-name');
+                if (nameEl) name = nameEl.textContent.trim();
+            }
+            
+            // Strategy 3: Header tags but get first child only
+            if (!name) {
+                const headerEl = tile.querySelector('h2, h3, h4');
+                if (headerEl) name = headerEl.childNodes[0]?.textContent?.trim() || headerEl.textContent.trim();
+            }
+            
+            // Strategy 4: Extract first meaningful line
+            if (!name) {
+                const fullText = tile.textContent.trim();
+                const lines = fullText.split('\n').filter(l => l.trim() && !l.match(/^\d+\/\d+/));
+                name = lines[0]?.trim() || '';
+            }
+            
+            // Clean up name - remove SBC counts like "0/5 SBCs"
+            name = name.replace(/\d+\/\d+\s*SBCs?/gi, '').trim();
+            name = name.split('\n')[0].trim(); // Take first line only
+            
             if (!name || name.length === 0) name = `SBC ${index + 1}`;
 
             const isCompleted = tile.querySelector('.completed, .checkmark, [class*="complete"]');
@@ -532,30 +557,39 @@
                     position: fixed;
                     top: 10px;
                     right: 10px;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    border-radius: 15px;
-                    padding: 20px;
-                    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+                    border: 1px solid rgba(59, 130, 246, 0.3);
+                    border-radius: 12px;
+                    padding: 24px;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(96, 165, 250, 0.2);
                     z-index: 999999;
-                    font-family: Arial, sans-serif;
-                    color: white;
-                    min-width: 320px;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+                    color: #f8fafc;
+                    min-width: 360px;
+                    max-width: 400px;
                     max-height: 90vh;
                     overflow-y: auto;
+                    backdrop-filter: blur(10px);
                 }
                 
                 #sbc-auto-ui h3 {
-                    margin: 0 0 15px 0;
-                    font-size: 18px;
+                    margin: 0 0 20px 0;
+                    font-size: 20px;
+                    font-weight: 700;
                     text-align: center;
+                    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    background-clip: text;
                     font-weight: bold;
                 }
                 
                 #sbc-auto-ui .stats {
-                    background: rgba(255,255,255,0.1);
+                    background: rgba(15, 23, 42, 0.6);
+                    border: 1px solid rgba(59, 130, 246, 0.2);
                     border-radius: 10px;
-                    padding: 15px;
-                    margin-bottom: 15px;
+                    padding: 16px;
+                    margin-bottom: 16px;
                 }
                 
                 #sbc-auto-ui .stat-item {
@@ -580,69 +614,113 @@
                 
                 #sbc-auto-ui select {
                     width: 100%;
-                    padding: 10px;
-                    border: none;
+                    padding: 12px;
+                    border: 1px solid rgba(59, 130, 246, 0.3);
                     border-radius: 8px;
                     font-size: 14px;
-                    background: rgba(255,255,255,0.9);
-                    color: #333;
-                    margin-top: 5px;
+                    background: rgba(15, 23, 42, 0.8);
+                    color: #f8fafc;
+                    margin-top: 8px;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                }
+                
+                #sbc-auto-ui select:hover {
+                    border-color: rgba(59, 130, 246, 0.5);
+                    background: rgba(15, 23, 42, 0.95);
+                }
+                
+                #sbc-auto-ui select:focus {
+                    outline: none;
+                    border-color: #3b82f6;
+                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
                 }
                 
                 #sbc-auto-ui input[type="number"] {
                     width: 100%;
-                    padding: 10px;
-                    border: none;
+                    padding: 12px;
+                    border: 1px solid rgba(59, 130, 246, 0.3);
                     border-radius: 8px;
                     font-size: 14px;
-                    margin-top: 5px;
+                    background: rgba(15, 23, 42, 0.8);
+                    color: #f8fafc;
+                    margin-top: 8px;
+                    transition: all 0.3s;
+                }
+                
+                #sbc-auto-ui input[type="number"]:focus {
+                    outline: none;
+                    border-color: #3b82f6;
+                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
                 }
                 
                 #sbc-auto-ui button {
                     width: 100%;
-                    padding: 12px;
+                    padding: 13px;
                     border: none;
                     border-radius: 8px;
                     font-size: 14px;
-                    font-weight: bold;
+                    font-weight: 600;
                     cursor: pointer;
                     transition: all 0.3s;
-                    margin: 5px 0;
+                    margin: 6px 0;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
                 }
                 
                 #sbc-auto-ui .btn-start {
-                    background: #10b981;
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
                     color: white;
                 }
                 
                 #sbc-auto-ui .btn-start:hover {
-                    background: #059669;
+                    background: linear-gradient(135deg, #059669 0%, #047857 100%);
                     transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
                 }
                 
                 #sbc-auto-ui .btn-stop {
-                    background: #ef4444;
+                    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
                     color: white;
+                }
+                
+                #sbc-auto-ui .btn-stop:hover {
+                    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
                 }
                 
                 #sbc-auto-ui .btn-refresh {
-                    background: #3b82f6;
+                    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
                     color: white;
+                }
+                
+                #sbc-auto-ui .btn-refresh:hover {
+                    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
                 }
                 
                 #sbc-auto-ui .btn-close {
-                    background: rgba(255,255,255,0.2);
-                    color: white;
-                    font-size: 12px;
-                    padding: 8px;
+                    background: rgba(71, 85, 105, 0.5);
+                    color: #cbd5e1;
+                    font-size: 13px;
+                    padding: 10px;
+                    border: 1px solid rgba(148, 163, 184, 0.2);
+                }
+                
+                #sbc-auto-ui .btn-close:hover {
+                    background: rgba(71, 85, 105, 0.8);
+                    color: #f1f5f9;
+                    transform: translateY(-1px);
                 }
                 
                 #sbc-auto-ui .settings {
-                    background: rgba(255,255,255,0.1);
+                    background: rgba(15, 23, 42, 0.6);
+                    border: 1px solid rgba(59, 130, 246, 0.2);
                     border-radius: 10px;
-                    padding: 10px;
-                    margin-bottom: 15px;
-                    font-size: 12px;
+                    padding: 14px;
+                    margin-bottom: 16px;
+                    font-size: 13px;
                 }
                 
                 #sbc-auto-ui .setting-item {
@@ -658,20 +736,22 @@
                 }
                 
                 #sbc-auto-ui .log {
-                    background: rgba(0,0,0,0.3);
+                    background: rgba(2, 6, 23, 0.8);
+                    border: 1px solid rgba(59, 130, 246, 0.2);
                     border-radius: 8px;
-                    padding: 10px;
-                    max-height: 150px;
+                    padding: 12px;
+                    max-height: 160px;
                     overflow-y: auto;
                     font-size: 11px;
-                    font-family: 'Courier New', monospace;
-                    margin-top: 10px;
+                    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+                    margin-top: 12px;
                 }
                 
                 #sbc-auto-ui .log-entry {
-                    margin: 2px 0;
-                    padding: 2px 0;
-                    border-bottom: 1px solid rgba(255,255,255,0.1);
+                    margin: 3px 0;
+                    padding: 3px 0;
+                    border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+                    color: #cbd5e1;
                 }
             </style>
             
@@ -737,8 +817,17 @@
 
         // Event listeners
         document.getElementById('refresh-btn').addEventListener('click', async () => {
+            // Check if we're in SBC section
+            const inSBCSection = document.querySelector('.ut-sbc-set-tile, .sbc-set-tile, [class*="sbc-set"]');
+            
+            if (!inSBCSection) {
+                alert('⚠️ تنبيه مهم\n\nيجب الدخول إلى صفحة SBC أولاً!\n\n1. اضغط على أيقونة SBC في القائمة\n2. ثم اضغط "تحميل قائمة SBCs"');
+                log('⚠️ يجب الدخول إلى صفحة SBC أولاً');
+                return;
+            }
+            
             log('🔄 جاري تحميل قائمة SBCs...');
-            await goToSBCSection();
+            await wait(500);
             await getSBCList();
 
             const select = document.getElementById('sbc-select');
