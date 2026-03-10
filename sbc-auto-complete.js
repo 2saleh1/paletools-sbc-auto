@@ -272,17 +272,23 @@
 
         // Click on the SBC tile
         currentSBC = sbcList[sbcIndex];
-        
+
         // Scroll to element so user can see it
         currentSBC.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         await wait(500);
-        
+
         // Highlight the element briefly
         currentSBC.element.style.outline = '3px solid #3b82f6';
         await wait(300);
         currentSBC.element.style.outline = '';
+
+        // Click on the tile container (not on children like paletools tab)
+        // Find the main clickable area (usually the header or container)
+        const tileHeader = currentSBC.element.querySelector('.ut-sbc-set-header, .sbc-set-header, .ut-tile-content');
+        const clickTarget = tileHeader || currentSBC.element;
         
-        currentSBC.element.click();
+        log(`🖱️ Clicking on: ${clickTarget.className}`);
+        clickTarget.click();
         await wait(CONFIG.WAIT_TIME);
 
         // Click on first challenge if multiple challenges exist
@@ -296,12 +302,12 @@
                     // Scroll to challenge
                     challenge.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     await wait(500);
-                    
+
                     // Highlight
                     challenge.style.outline = '3px solid #10b981';
                     await wait(300);
                     challenge.style.outline = '';
-                    
+
                     challenge.click();
                     log('✅ تم فتح التحدي');
                     await wait(CONFIG.WAIT_TIME);
@@ -331,16 +337,16 @@
 
         if (button) {
             log('✅ تم العثور على زر Smart Builder');
-            
+
             // Scroll to button
             button.scrollIntoView({ behavior: 'smooth', block: 'center' });
             await wait(500);
-            
+
             // Highlight button
             button.style.outline = '3px solid #f59e0b';
             await wait(300);
             button.style.outline = '';
-            
+
             button.click();
             log('⏳ انتظار اكتمال البناء (أقصى 60ث)...');
 
@@ -349,11 +355,11 @@
             let buildComplete = false;
             let checksCount = 0;
             const maxChecks = 120; // 120 checks * 500ms = 60 seconds
-            
+
             for (let i = 0; i < maxChecks; i++) {
                 await wait(500);
                 checksCount++;
-                
+
                 // Check if Submit/Exchange button appeared (means build is complete)
                 const submitSelectors = [
                     'button.btn-standard.call-to-action',
@@ -363,32 +369,32 @@
                     '.ut-squad-pitch-view button.call-to-action',
                     '.ut-sbc-challenge-details button.call-to-action'
                 ];
-                
+
                 let submitBtn = null;
                 for (const selector of submitSelectors) {
                     submitBtn = document.querySelector(selector);
                     if (submitBtn && submitBtn.offsetParent !== null) {
                         // Verify it's not disabled
-                        const isDisabled = submitBtn.disabled || 
+                        const isDisabled = submitBtn.disabled ||
                             submitBtn.classList.contains('disabled') ||
                             submitBtn.getAttribute('disabled') !== null;
-                        
+
                         if (!isDisabled) {
                             buildComplete = true;
                             const totalSeconds = Math.round(checksCount * 0.5);
                             log(`✅ تم اكتمال Smart Builder بعد ${totalSeconds} ثانية`);
-                            
+
                             // Scroll to Submit button
                             submitBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
                             await wait(300);
-                            
+
                             break;
                         }
                     }
                 }
-                
+
                 if (buildComplete) break;
-                
+
                 // Show progress every 5 seconds (10 checks)
                 if (checksCount % 10 === 0) {
                     const elapsed = Math.round(checksCount * 0.5);
@@ -399,20 +405,20 @@
             if (!buildComplete) {
                 log('⚠️ انتهى وقت الانتظار (60ث)');
                 log('🔍 تحقق من حالة الصفحة...');
-                
+
                 // Debug: Check what's on the page
                 const allButtons = document.querySelectorAll('button');
                 log(`🔍 عدد الأزرار في الصفحة: ${allButtons.length}`);
-                
+
                 // Check for error messages
                 const errorMsg = document.querySelector('.notification.error, .ut-notification--error');
                 if (errorMsg) {
                     log(`❌ رسالة خطأ: ${errorMsg.textContent.trim()}`);
                 }
-                
+
                 return false;
             }
-            
+
             return true;
         }
 
@@ -429,7 +435,7 @@
 
         // Try to find Submit button with multiple strategies
         log('🔍 البحث عن زر Submit...');
-        
+
         const submitSelectors = [
             'button.btn-standard.call-to-action',
             'button.call-to-action',
@@ -439,15 +445,15 @@
             '.ut-sbc-challenge-details button.call-to-action',
             '.ut-button-group button.call-to-action'
         ];
-        
+
         let submitBtn = null;
         for (const selector of submitSelectors) {
             const btn = document.querySelector(selector);
             if (btn && btn.offsetParent !== null) {
-                const isDisabled = btn.disabled || 
+                const isDisabled = btn.disabled ||
                     btn.classList.contains('disabled') ||
                     btn.getAttribute('disabled') !== null;
-                
+
                 if (!isDisabled) {
                     submitBtn = btn;
                     log(`✅ تم العثور على زر Submit: ${selector}`);
@@ -455,14 +461,14 @@
                 }
             }
         }
-        
+
         // Fallback: Search by text
         if (!submitBtn) {
             submitBtn = findElementByText('Submit', 'button') ||
                 findElementByText('Exchange', 'button') ||
                 findElementByText('تقديم', 'button') ||
                 findElementByText('إرسال', 'button');
-            
+
             if (submitBtn && submitBtn.offsetParent !== null) {
                 log('✅ تم العثور على زر Submit (عن طريق النص)');
             }
@@ -497,19 +503,19 @@
         log('🔍 معلومات Debug:');
         const allButtons = document.querySelectorAll('button');
         log(`  - عدد الأزرار: ${allButtons.length}`);
-        
+
         // List visible buttons
         const visibleButtons = Array.from(allButtons)
             .filter(btn => btn.offsetParent !== null)
             .slice(0, 5);
-        
+
         if (visibleButtons.length > 0) {
             log(`  - أول 5 أزرار مرئية:`);
             visibleButtons.forEach((btn, i) => {
                 log(`    ${i + 1}. ${btn.className} - "${btn.textContent.trim().substring(0, 30)}"`);
             });
         }
-        
+
         return false;
     }
 
