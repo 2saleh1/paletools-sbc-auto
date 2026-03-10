@@ -97,112 +97,109 @@
         return false;
     }
 
-    // ========== الحصول على قائمة SBCs المتاحة ==========
+    // ========== Get SBC List ==========
     async function getSBCList() {
-        log('📋 جاري تحميل قائمة SBCs...');
+        log('📋 Loading SBC list...');
 
         await wait(1500);
 
-        // Try multiple selector strategies for SBC tiles
-        let sbcTiles = document.querySelectorAll('.ut-sbc-set-tile');
+        // More precise selector - avoid buttons and non-SBC elements
+        let sbcTiles = document.querySelectorAll('.ut-sbc-set-tile-view:not(.sbc-set--buttons)');
         if (sbcTiles.length === 0) {
-            sbcTiles = document.querySelectorAll('.sbc-set-tile, [class*="sbc-set"]');
+            sbcTiles = document.querySelectorAll('.ut-sbc-set-tile:not([class*="button"])');
         }
         if (sbcTiles.length === 0) {
-            sbcTiles = document.querySelectorAll('.ut-tile-transfer-market, .sbc-tile, [class*="tile"][class*="sbc"]');
+            sbcTiles = document.querySelectorAll('[class*="sbc-set-tile"]:not([class*="button"])');
         }
 
-        log(`🔍 عثرت على ${sbcTiles.length} بطاقة SBC`);
+        log(`🔍 Found ${sbcTiles.length} SBC tiles`);
 
         sbcList = [];
         sbcTiles.forEach((tile, index) => {
             let name = '';
-            
-            // Debug: Log the tile structure
-            if (index < 3) { // Show only first 3 for debugging
-                log(`\n--- البطاقة ${index + 1} ---`);
+
+            // Debug: Log the tile structure for first 3
+            if (index < 3) {
+                log(`\n--- Tile ${index + 1} ---`);
                 log(`Classes: ${tile.className}`);
             }
-            
-            // STRATEGY 1: Search in all possible text containers
-            const allTextElements = tile.querySelectorAll('*');
-            for (const el of allTextElements) {
-                const classList = Array.from(el.classList);
-                const hasTitle = classList.some(c => 
-                    c.includes('title') || 
-                    c.includes('name') || 
-                    c.includes('label')
-                );
-                
-                if (hasTitle) {
-                    const text = el.textContent.trim();
-                    if (index < 3) {
-                        log(`  وجدت عنصر عنوان: "${text.substring(0, 50)}"`);
-                    }
-                    
-                    // Try to get first text node
-                    for (const node of el.childNodes) {
-                        if (node.nodeType === Node.TEXT_NODE) {
-                            const nodeText = node.textContent.trim();
-                            if (nodeText && nodeText.length > 2 && !nodeText.match(/^\d+\/\d+/)) {
-                                name = nodeText;
-                                if (index < 3) {
-                                    log(`  ✓ استخدام النص: "${name}"`);
-                                }
-                                break;
+
+            // STRATEGY 1: Look for title in common EA structure
+            const titleEl = tile.querySelector('.title, .ut-sbc-set-tile-name, [class*="tile-name"]');
+            if (titleEl) {
+                // Get only first text node
+                for (const node of titleEl.childNodes) {
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        const nodeText = node.textContent.trim();
+                        if (nodeText && nodeText.length > 2 && !nodeText.match(/^\d+\/\d+/)) {
+                            name = nodeText;
+                            if (index < 3) {
+                                log(`  ✓ Found title: "${name}"`);
                             }
-                        }
-                    }
-                    
-                    if (name) break;
-                    
-                    // Fallback: use innerText but clean it
-                    if (!name && text.length > 2 && text.length < 100) {
-                        const cleanText = text.split('\n')[0].trim();
-                        if (!cleanText.match(/^\d+\/\d+/)) {
-                            name = cleanText;
                             break;
                         }
                     }
                 }
-            }
-            
-            // STRATEGY 2: Get attribute-based data
-            if (!name) {
-                const dataName = tile.getAttribute('data-name') || 
-                                tile.getAttribute('data-title') ||
-                                tile.getAttribute('aria-label');
-                if (dataName && dataName.length > 2) {
-                    name = dataName;
+
+                // If no text node, use cleaned full text
+                if (!name) {
+                    const text = titleEl.textContent.trim();
+                    const lines = text.split('\n').filter(l => l.trim() && !l.match(/^\d+\/\d+/));
+                    if (lines.length > 0) {
+                        name = lines[0].trim();
+                        if (index < 3) {
+                            log(`  ✓ Found title (cleaned): "${name}"`);
+                        }
+                    }
                 }
             }
-            
-            // STRATEGY 3: Smart text extraction from whole tile
+
+            // STRATEGY 2: Check data attributes
+            if (!name) {
+                const dataName = tile.getAttribute('data-name') ||
+                    tile.getAttribute('data-title') ||
+                    tile.getAttribute('aria-label');
+                if (dataName && dataName.length > 2) {
+                    name = dataName;
+                    if (index < 3) {
+                        log(`  ✓ Found from attribute: "${name}"`);
+                    }
+                }
+            }
+
+            // STRATEGY 3: Smart extraction from full text
             if (!name) {
                 const fullText = tile.textContent.trim();
                 const lines = fullText.split('\n')
                     .map(l => l.trim())
                     .filter(l => l.length > 2)
                     .filter(l => !l.match(/^\d+\/\d+/))
-                    .filter(l => !l.match(/^(SBCs?|Challenges?|Complete|Expires?|Days?|Hours?|Minutes?)$/i));
-                
+                    .filter(l => !l.match(/^(SBCs?|Challenges?|Complete|Expires?|Days?|Hours?|Minutes?|Repeatable)$/i));
+
                 if (lines.length > 0) {
                     name = lines[0];
+                    if (index < 3) {
+                        log(`  ✓ Found from text: "${name}"`);
+                    }
                 }
             }
-            
+
             // Clean up the name
             if (name) {
                 name = name.replace(/\d+\/\d+\s*SBCs?/gi, '').trim();
+                name = name.replace(/Repeatable:\s*/gi, '').trim();
                 name = name.replace(/\s+/g, ' ').trim();
                 name = name.split('\n')[0].trim();
             }
-            
+
             // Fallback
-            if (!name || name.length < 3) {
-                name = `[Unknown SBC ${index + 1}]`;
+            if (!name || name.length < 2) {
+                name = `[Unknown-${index + 1}]`;
+                if (index < 3) {
+                    log(`  ✗ No valid name found`);
+                }
             } else if (index < 3) {
-                log(`  ✅ الاسم النهائي: "${name}"`);
+                log(`  ✅ Final name: "${name}"`);
             }
 
             const isCompleted = tile.querySelector('.completed, .checkmark, [class*="complete"]');
@@ -216,14 +213,29 @@
             }
         });
 
-        log(`\n📊 تم العثور على ${sbcList.length} SBC متاح`);
-        
-        // Show first 3 SBC names for verification
+        log(`\n📊 Found ${sbcList.length} available SBCs`);
+
+        // Show first 3 SBC names
         if (sbcList.length > 0) {
-            const sampleNames = sbcList.slice(0, 3).map(s => s.name).join('\n');
-            log(`أول 3 أسماء:\n${sampleNames}`);
+            log('\n📋 First 3 names:');
+            sbcList.slice(0, 3).forEach((sbc, i) => {
+                log(`  ${i + 1}. ${sbc.name}`);
+            });
+        } else {
+            log('⚠️ No SBCs found - make sure you\'re in SBC page');
         }
-        
+
+        return sbcList;
+    }
+
+    // ========== اختيار وفتح SBC ==========
+    async function selectAndOpenSBC(sbcIndex) {
+        log(`🎯 فتح SBC: ${sbcList[sbcIndex].name}...`);
+
+        // Click on the SBC tile
+        currentSBC = sbcList[sbcIndex];
+        currentSBC.element.click();
+        await wait(CONFIG.WAIT_TIME);
 
         // Click on first challenge if multiple challenges exist
         const challenges = document.querySelectorAll('.ut-sbc-challenge-tile, .challenge-tile');
@@ -239,368 +251,369 @@
             }
         }
 
+        log('✅ تم فتح SBC');
         return true;
     }
 
     // ========== استخدام Smart Build ==========
     async function usePaletoolsSmartBuild() {
-        log('🤖 استخدام Smart Build من Paletools...');
+    log('🤖 استخدام Smart Build من Paletools...');
 
-        // Look for Paletools Smart Build button
-        const smartBuildSelectors = [
-            'button:contains("Smart Build")',
-            'button[class*="smart"]',
-            '.paletools-smart-build',
-            '[data-paletools="smart-build"]',
-            'button:contains("Auto")',
-            'button:contains("Build")'
-        ];
+    // Look for Paletools Smart Build button
+    const smartBuildSelectors = [
+        'button:contains("Smart Build")',
+        'button[class*="smart"]',
+        '.paletools-smart-build',
+        '[data-paletools="smart-build"]',
+        'button:contains("Auto")',
+        'button:contains("Build")'
+    ];
 
-        // Try to find Smart Build button
-        for (const selector of smartBuildSelectors) {
-            const button = findElementByText('Smart Build', 'button') ||
-                findElementByText('Auto Build', 'button') ||
-                document.querySelector(selector);
+    // Try to find Smart Build button
+    for (const selector of smartBuildSelectors) {
+        const button = findElementByText('Smart Build', 'button') ||
+            findElementByText('Auto Build', 'button') ||
+            document.querySelector(selector);
 
-            if (button) {
-                button.click();
-                log('✅ تم تشغيل Smart Build');
-                await wait(CONFIG.WAIT_TIME * 2);
-                return true;
+        if (button) {
+            button.click();
+            log('✅ تم تشغيل Smart Build');
+            await wait(CONFIG.WAIT_TIME * 2);
+            return true;
+        }
+    }
+
+    // Alternative: Try keyboard shortcut if Paletools has one
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'b', ctrlKey: true }));
+    await wait(CONFIG.WAIT_TIME);
+
+    log('⚠️ Smart Build قد يكون تم تشغيله (أو غير متوفر)');
+    return true;
+}
+
+// ========== تقديم SBC ==========
+async function submitSBC() {
+    log('📤 إرسال SBC...');
+
+    // Wait for squad to be built
+    await wait(CONFIG.WAIT_TIME);
+
+    // Click submit/exchange button
+    const submitSelectors = [
+        'button.btn-standard.call-to-action',
+        'button:contains("Submit")',
+        'button:contains("Exchange")',
+        'button[class*="submit"]',
+        '.ut-button-group button.call-to-action'
+    ];
+
+    for (const selector of submitSelectors) {
+        if (await clickElement(selector)) {
+            log('✅ تم تقديم SBC');
+            await wait(CONFIG.WAIT_TIME);
+
+            // Confirm if needed
+            const confirmButton = findElementByText('Confirm', 'button') ||
+                findElementByText('Yes', 'button');
+            if (confirmButton) {
+                confirmButton.click();
+                await wait(CONFIG.WAIT_TIME);
             }
+
+            sbcsCompleted++;
+            updateUI();
+            return true;
+        }
+    }
+
+    log('❌ فشل تقديم SBC');
+    return false;
+}
+
+// ========== فتح المكافآت ==========
+async function claimRewards() {
+    log('🎁 استلام المكافآت...');
+
+    await wait(1000);
+
+    // Click through rewards
+    const rewardSelectors = [
+        'button.ut-button',
+        'button:contains("Ok")',
+        'button:contains("Claim")',
+        '.ut-click-shield'
+    ];
+
+    for (let i = 0; i < 5; i++) {
+        for (const selector of rewardSelectors) {
+            await clickElement(selector);
         }
 
-        // Alternative: Try keyboard shortcut if Paletools has one
-        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'b', ctrlKey: true }));
-        await wait(CONFIG.WAIT_TIME);
+        // Click anywhere on screen to skip animations
+        document.body.click();
+        await wait(500);
+    }
 
-        log('⚠️ Smart Build قد يكون تم تشغيله (أو غير متوفر)');
+    log('✅ تم استلام المكافآت');
+    return true;
+}
+
+// ========== فتح البكجات ==========
+async function openPacks(count = 1) {
+    log(`📦 فتح ${count} بكج...`);
+
+    // Navigate to store
+    await goToStore();
+    await wait(CONFIG.WAIT_TIME);
+
+    for (let i = 0; i < count; i++) {
+        const success = await openSinglePack();
+        if (!success) break;
+
+        await wait(CONFIG.WAIT_TIME);
+    }
+
+    log(`✅ تم فتح ${count} بكج`);
+}
+
+async function goToStore() {
+    log('🏪 الانتقال إلى المتجر...');
+
+    const storeSelectors = [
+        'button.ut-tab-bar-item.icon-store',
+        'a[href*="store"]',
+        'button[class*="store"]',
+        '.icon-store'
+    ];
+
+    for (const selector of storeSelectors) {
+        if (await clickElement(selector)) {
+            await wait(CONFIG.WAIT_TIME);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+async function openSinglePack() {
+    // Find first pack
+    const pack = document.querySelector('.ut-pack-tile, .ut-tile-pack, .pack-item');
+    if (!pack) {
+        log('❌ لا توجد بكجات متاحة');
+        return false;
+    }
+
+    pack.click();
+    await wait(1000);
+
+    // Open pack
+    await clickElement('.btn-standard.call-to-action');
+    await wait(CONFIG.WAIT_TIME);
+
+    // Skip animation
+    document.body.click();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+    await wait(CONFIG.WAIT_TIME);
+
+    // Handle duplicates
+    await handleDuplicates();
+
+    packsOpened++;
+    updateUI();
+
+    return true;
+}
+
+// ========== إدارة اللاعبين المكررين ==========
+async function handleDuplicates() {
+    log('🔄 معالجة اللاعبين المكررين...');
+
+    await wait(1500);
+
+    // Get all duplicate items
+    const items = document.querySelectorAll('.ut-item, .player-item, [class*="item"]');
+
+    for (const item of items) {
+        const isDuplicate = item.querySelector('.duplicate, [class*="duplicate"]');
+        if (!isDuplicate) continue;
+
+        // Check rarity
+        const isGold = item.classList.contains('gold') ||
+            item.classList.contains('rare') ||
+            item.querySelector('.gold, .rare');
+
+        const isBronzeOrSilver = item.classList.contains('bronze') ||
+            item.classList.contains('silver') ||
+            item.querySelector('.bronze, .silver');
+
+        // Select the item
+        item.click();
+        await wait(300);
+
+        if (isGold && CONFIG.GOLD_DUPLICATES_TO_SBC_STORAGE) {
+            // Send gold duplicates to SBC Storage
+            const success = await sendToSBCStorage();
+            if (success) {
+                goldsSentToStorage++;
+                log('💛 تم إرسال لاعب ذهبي إلى SBC Storage');
+            } else if (CONFIG.STOP_ON_SBC_STORAGE_FULL) {
+                log('⚠️ SBC Storage ممتلئ! إيقاف السكربت...');
+                stopScript();
+                return;
+            }
+        } else if (isBronzeOrSilver && CONFIG.BRONZE_SILVER_QUICK_SELL) {
+            // Quick sell bronze/silver duplicates
+            await quickSellItem();
+            quickSells++;
+            log('💰 تم بيع لاعب برونزي/فضي');
+        }
+
+        await wait(500);
+    }
+
+    // Send remaining items to club
+    await clickElement('.store-all, .sendToClub');
+
+    updateUI();
+}
+
+async function sendToSBCStorage() {
+    // Right click or long press on item
+    const selectedItem = document.querySelector('.selected, .ut-item--selected');
+    if (!selectedItem) return false;
+
+    // Try to open context menu
+    selectedItem.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }));
+    await wait(500);
+
+    // Look for "Send to SBC Storage" option
+    const sbcStorageBtn = findElementByText('SBC', 'button') ||
+        findElementByText('Storage', 'button');
+
+    if (sbcStorageBtn) {
+        sbcStorageBtn.click();
+        await wait(500);
+
+        // Check if storage is full
+        const fullMessage = findElementByText('full', 'div') ||
+            findElementByText('maximum', 'div');
+
+        if (fullMessage) {
+            return false; // Storage full
+        }
+
         return true;
     }
 
-    // ========== تقديم SBC ==========
-    async function submitSBC() {
-        log('📤 إرسال SBC...');
+    // Alternative: Try keyboard shortcut
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true }));
+    await wait(500);
 
-        // Wait for squad to be built
-        await wait(CONFIG.WAIT_TIME);
+    return true;
+}
 
-        // Click submit/exchange button
-        const submitSelectors = [
-            'button.btn-standard.call-to-action',
-            'button:contains("Submit")',
-            'button:contains("Exchange")',
-            'button[class*="submit"]',
-            '.ut-button-group button.call-to-action'
-        ];
+async function quickSellItem() {
+    // Look for quick sell button
+    const quickSellSelectors = [
+        'button:contains("Quick Sell")',
+        'button[class*="quicksell"]',
+        '.quick-sell-button'
+    ];
 
-        for (const selector of submitSelectors) {
-            if (await clickElement(selector)) {
-                log('✅ تم تقديم SBC');
-                await wait(CONFIG.WAIT_TIME);
-
-                // Confirm if needed
-                const confirmButton = findElementByText('Confirm', 'button') ||
-                    findElementByText('Yes', 'button');
-                if (confirmButton) {
-                    confirmButton.click();
-                    await wait(CONFIG.WAIT_TIME);
-                }
-
-                sbcsCompleted++;
-                updateUI();
-                return true;
+    for (const selector of quickSellSelectors) {
+        if (await clickElement(selector)) {
+            // Confirm
+            const confirmBtn = findElementByText('Confirm', 'button');
+            if (confirmBtn) {
+                confirmBtn.click();
+                await wait(300);
             }
+            return true;
         }
+    }
 
+    return false;
+}
+
+// ========== العملية الكاملة ==========
+async function completeSBCCycle(sbcIndex) {
+    if (!isRunning) return;
+
+    log(`\n🔄 بدء دورة SBC ${sbcsCompleted + 1}...\n`);
+
+    // 1. Go to SBC section
+    await goToSBCSection();
+
+    // 2. Get SBC list if not loaded
+    if (sbcList.length === 0) {
+        await getSBCList();
+    }
+
+    // 3. Select and open SBC
+    await selectAndOpenSBC(sbcIndex);
+
+    // 4. Use Smart Build
+    await usePaletoolsSmartBuild();
+
+    // 5. Submit SBC
+    const submitted = await submitSBC();
+    if (!submitted) {
         log('❌ فشل تقديم SBC');
         return false;
     }
 
-    // ========== فتح المكافآت ==========
-    async function claimRewards() {
-        log('🎁 استلام المكافآت...');
+    // 6. Claim rewards
+    await claimRewards();
 
-        await wait(1000);
-
-        // Click through rewards
-        const rewardSelectors = [
-            'button.ut-button',
-            'button:contains("Ok")',
-            'button:contains("Claim")',
-            '.ut-click-shield'
-        ];
-
-        for (let i = 0; i < 5; i++) {
-            for (const selector of rewardSelectors) {
-                await clickElement(selector);
-            }
-
-            // Click anywhere on screen to skip animations
-            document.body.click();
-            await wait(500);
-        }
-
-        log('✅ تم استلام المكافآت');
-        return true;
+    // 7. Open packs
+    if (CONFIG.PACKS_PER_SBC > 0) {
+        await openPacks(CONFIG.PACKS_PER_SBC);
     }
 
-    // ========== فتح البكجات ==========
-    async function openPacks(count = 1) {
-        log(`📦 فتح ${count} بكج...`);
+    log(`✅ تم إكمال دورة SBC بنجاح!\n`);
+    return true;
+}
 
-        // Navigate to store
-        await goToStore();
+// ========== البدء ==========
+async function startAutoSBC(sbcIndex = 0, cycles = 1) {
+    if (isRunning) {
+        log('⚠️ السكربت يعمل بالفعل!');
+        return;
+    }
+
+    isRunning = true;
+    log('🚀 بدء SBC Auto Completer...\n');
+    updateUI();
+
+    for (let i = 0; i < cycles; i++) {
+        if (!isRunning) break;
+
+        const success = await completeSBCCycle(sbcIndex);
+        if (!success) {
+            log('❌ حدث خطأ، إيقاف السكربت');
+            break;
+        }
+
         await wait(CONFIG.WAIT_TIME);
-
-        for (let i = 0; i < count; i++) {
-            const success = await openSinglePack();
-            if (!success) break;
-
-            await wait(CONFIG.WAIT_TIME);
-        }
-
-        log(`✅ تم فتح ${count} بكج`);
     }
 
-    async function goToStore() {
-        log('🏪 الانتقال إلى المتجر...');
+    stopScript();
+}
 
-        const storeSelectors = [
-            'button.ut-tab-bar-item.icon-store',
-            'a[href*="store"]',
-            'button[class*="store"]',
-            '.icon-store'
-        ];
+function stopScript() {
+    isRunning = false;
+    log('\n⏸️ تم إيقاف السكربت');
+    updateUI();
+}
 
-        for (const selector of storeSelectors) {
-            if (await clickElement(selector)) {
-                await wait(CONFIG.WAIT_TIME);
-                return true;
-            }
-        }
+// ========== واجهة المستخدم ==========
+function createUI() {
+    if (document.getElementById('sbc-auto-ui')) return;
 
-        return false;
-    }
-
-    async function openSinglePack() {
-        // Find first pack
-        const pack = document.querySelector('.ut-pack-tile, .ut-tile-pack, .pack-item');
-        if (!pack) {
-            log('❌ لا توجد بكجات متاحة');
-            return false;
-        }
-
-        pack.click();
-        await wait(1000);
-
-        // Open pack
-        await clickElement('.btn-standard.call-to-action');
-        await wait(CONFIG.WAIT_TIME);
-
-        // Skip animation
-        document.body.click();
-        document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
-        await wait(CONFIG.WAIT_TIME);
-
-        // Handle duplicates
-        await handleDuplicates();
-
-        packsOpened++;
-        updateUI();
-
-        return true;
-    }
-
-    // ========== إدارة اللاعبين المكررين ==========
-    async function handleDuplicates() {
-        log('🔄 معالجة اللاعبين المكررين...');
-
-        await wait(1500);
-
-        // Get all duplicate items
-        const items = document.querySelectorAll('.ut-item, .player-item, [class*="item"]');
-
-        for (const item of items) {
-            const isDuplicate = item.querySelector('.duplicate, [class*="duplicate"]');
-            if (!isDuplicate) continue;
-
-            // Check rarity
-            const isGold = item.classList.contains('gold') ||
-                item.classList.contains('rare') ||
-                item.querySelector('.gold, .rare');
-
-            const isBronzeOrSilver = item.classList.contains('bronze') ||
-                item.classList.contains('silver') ||
-                item.querySelector('.bronze, .silver');
-
-            // Select the item
-            item.click();
-            await wait(300);
-
-            if (isGold && CONFIG.GOLD_DUPLICATES_TO_SBC_STORAGE) {
-                // Send gold duplicates to SBC Storage
-                const success = await sendToSBCStorage();
-                if (success) {
-                    goldsSentToStorage++;
-                    log('💛 تم إرسال لاعب ذهبي إلى SBC Storage');
-                } else if (CONFIG.STOP_ON_SBC_STORAGE_FULL) {
-                    log('⚠️ SBC Storage ممتلئ! إيقاف السكربت...');
-                    stopScript();
-                    return;
-                }
-            } else if (isBronzeOrSilver && CONFIG.BRONZE_SILVER_QUICK_SELL) {
-                // Quick sell bronze/silver duplicates
-                await quickSellItem();
-                quickSells++;
-                log('💰 تم بيع لاعب برونزي/فضي');
-            }
-
-            await wait(500);
-        }
-
-        // Send remaining items to club
-        await clickElement('.store-all, .sendToClub');
-
-        updateUI();
-    }
-
-    async function sendToSBCStorage() {
-        // Right click or long press on item
-        const selectedItem = document.querySelector('.selected, .ut-item--selected');
-        if (!selectedItem) return false;
-
-        // Try to open context menu
-        selectedItem.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }));
-        await wait(500);
-
-        // Look for "Send to SBC Storage" option
-        const sbcStorageBtn = findElementByText('SBC', 'button') ||
-            findElementByText('Storage', 'button');
-
-        if (sbcStorageBtn) {
-            sbcStorageBtn.click();
-            await wait(500);
-
-            // Check if storage is full
-            const fullMessage = findElementByText('full', 'div') ||
-                findElementByText('maximum', 'div');
-
-            if (fullMessage) {
-                return false; // Storage full
-            }
-
-            return true;
-        }
-
-        // Alternative: Try keyboard shortcut
-        document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true }));
-        await wait(500);
-
-        return true;
-    }
-
-    async function quickSellItem() {
-        // Look for quick sell button
-        const quickSellSelectors = [
-            'button:contains("Quick Sell")',
-            'button[class*="quicksell"]',
-            '.quick-sell-button'
-        ];
-
-        for (const selector of quickSellSelectors) {
-            if (await clickElement(selector)) {
-                // Confirm
-                const confirmBtn = findElementByText('Confirm', 'button');
-                if (confirmBtn) {
-                    confirmBtn.click();
-                    await wait(300);
-                }
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    // ========== العملية الكاملة ==========
-    async function completeSBCCycle(sbcIndex) {
-        if (!isRunning) return;
-
-        log(`\n🔄 بدء دورة SBC ${sbcsCompleted + 1}...\n`);
-
-        // 1. Go to SBC section
-        await goToSBCSection();
-
-        // 2. Get SBC list if not loaded
-        if (sbcList.length === 0) {
-            await getSBCList();
-        }
-
-        // 3. Select and open SBC
-        await selectAndOpenSBC(sbcIndex);
-
-        // 4. Use Smart Build
-        await usePaletoolsSmartBuild();
-
-        // 5. Submit SBC
-        const submitted = await submitSBC();
-        if (!submitted) {
-            log('❌ فشل تقديم SBC');
-            return false;
-        }
-
-        // 6. Claim rewards
-        await claimRewards();
-
-        // 7. Open packs
-        if (CONFIG.PACKS_PER_SBC > 0) {
-            await openPacks(CONFIG.PACKS_PER_SBC);
-        }
-
-        log(`✅ تم إكمال دورة SBC بنجاح!\n`);
-        return true;
-    }
-
-    // ========== البدء ==========
-    async function startAutoSBC(sbcIndex = 0, cycles = 1) {
-        if (isRunning) {
-            log('⚠️ السكربت يعمل بالفعل!');
-            return;
-        }
-
-        isRunning = true;
-        log('🚀 بدء SBC Auto Completer...\n');
-        updateUI();
-
-        for (let i = 0; i < cycles; i++) {
-            if (!isRunning) break;
-
-            const success = await completeSBCCycle(sbcIndex);
-            if (!success) {
-                log('❌ حدث خطأ، إيقاف السكربت');
-                break;
-            }
-
-            await wait(CONFIG.WAIT_TIME);
-        }
-
-        stopScript();
-    }
-
-    function stopScript() {
-        isRunning = false;
-        log('\n⏸️ تم إيقاف السكربت');
-        updateUI();
-    }
-
-    // ========== واجهة المستخدم ==========
-    function createUI() {
-        if (document.getElementById('sbc-auto-ui')) return;
-
-        const ui = document.createElement('div');
-        ui.id = 'sbc-auto-ui';
-        ui.innerHTML = `
+    const ui = document.createElement('div');
+    ui.id = 'sbc-auto-ui';
+    ui.innerHTML = `
             <style>
                 #sbc-auto-ui {
                     position: fixed;
@@ -862,77 +875,77 @@
             </div>
         `;
 
-        document.body.appendChild(ui);
+    document.body.appendChild(ui);
 
-        // Event listeners
-        document.getElementById('refresh-btn').addEventListener('click', async () => {
-            // Check if we're in SBC section
-            const inSBCSection = document.querySelector('.ut-sbc-set-tile, .sbc-set-tile, [class*="sbc-set"]');
+    // Event listeners
+    document.getElementById('refresh-btn').addEventListener('click', async () => {
+        // Check if we're in SBC section
+        const inSBCSection = document.querySelector('.ut-sbc-set-tile, .sbc-set-tile, [class*="sbc-set"]');
 
-            if (!inSBCSection) {
-                alert('⚠️ تنبيه مهم\n\nيجب الدخول إلى صفحة SBC أولاً!\n\n1. اضغط على أيقونة SBC في القائمة\n2. ثم اضغط "تحميل قائمة SBCs"');
-                log('⚠️ يجب الدخول إلى صفحة SBC أولاً');
-                return;
-            }
+        if (!inSBCSection) {
+            alert('⚠️ تنبيه مهم\n\nيجب الدخول إلى صفحة SBC أولاً!\n\n1. اضغط على أيقونة SBC في القائمة\n2. ثم اضغط "تحميل قائمة SBCs"');
+            log('⚠️ يجب الدخول إلى صفحة SBC أولاً');
+            return;
+        }
 
-            log('🔄 جاري تحميل قائمة SBCs...');
-            await wait(500);
-            await getSBCList();
+        log('🔄 جاري تحميل قائمة SBCs...');
+        await wait(500);
+        await getSBCList();
 
-            const select = document.getElementById('sbc-select');
-            select.innerHTML = '';
+        const select = document.getElementById('sbc-select');
+        select.innerHTML = '';
 
-            if (sbcList.length === 0) {
-                select.innerHTML = '<option value="-1">-- لا توجد SBCs متاحة --</option>';
-                log('❌ لم يتم العثور على SBCs');
-            } else {
-                sbcList.forEach((sbc, index) => {
-                    const option = document.createElement('option');
-                    option.value = index;
-                    option.textContent = sbc.name;
-                    select.appendChild(option);
-                });
-                log(`✅ تم تحميل ${sbcList.length} SBC`);
-            }
-        });
+        if (sbcList.length === 0) {
+            select.innerHTML = '<option value="-1">-- لا توجد SBCs متاحة --</option>';
+            log('❌ لم يتم العثور على SBCs');
+        } else {
+            sbcList.forEach((sbc, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = sbc.name;
+                select.appendChild(option);
+            });
+            log(`✅ تم تحميل ${sbcList.length} SBC`);
+        }
+    });
 
-        document.getElementById('start-btn').addEventListener('click', () => {
-            const sbcIndex = parseInt(document.getElementById('sbc-select').value);
-            const cycles = parseInt(document.getElementById('cycles-input').value);
+    document.getElementById('start-btn').addEventListener('click', () => {
+        const sbcIndex = parseInt(document.getElementById('sbc-select').value);
+        const cycles = parseInt(document.getElementById('cycles-input').value);
 
-            if (sbcIndex < 0) {
-                alert('⚠️ اختر SBC من القائمة أولاً!');
-                return;
-            }
+        if (sbcIndex < 0) {
+            alert('⚠️ اختر SBC من القائمة أولاً!');
+            return;
+        }
 
-            // Update config from checkboxes
-            CONFIG.GOLD_DUPLICATES_TO_SBC_STORAGE = document.getElementById('gold-storage').checked;
-            CONFIG.BRONZE_SILVER_QUICK_SELL = document.getElementById('bronze-silver-sell').checked;
-            CONFIG.STOP_ON_SBC_STORAGE_FULL = document.getElementById('stop-full').checked;
+        // Update config from checkboxes
+        CONFIG.GOLD_DUPLICATES_TO_SBC_STORAGE = document.getElementById('gold-storage').checked;
+        CONFIG.BRONZE_SILVER_QUICK_SELL = document.getElementById('bronze-silver-sell').checked;
+        CONFIG.STOP_ON_SBC_STORAGE_FULL = document.getElementById('stop-full').checked;
 
-            document.getElementById('start-btn').style.display = 'none';
-            document.getElementById('stop-btn').style.display = 'block';
-            document.getElementById('refresh-btn').disabled = true;
+        document.getElementById('start-btn').style.display = 'none';
+        document.getElementById('stop-btn').style.display = 'block';
+        document.getElementById('refresh-btn').disabled = true;
 
-            startAutoSBC(sbcIndex, cycles);
-        });
+        startAutoSBC(sbcIndex, cycles);
+    });
 
-        document.getElementById('stop-btn').addEventListener('click', () => {
-            stopScript();
-            document.getElementById('start-btn').style.display = 'block';
-            document.getElementById('stop-btn').style.display = 'none';
-            document.getElementById('refresh-btn').disabled = false;
-        });
+    document.getElementById('stop-btn').addEventListener('click', () => {
+        stopScript();
+        document.getElementById('start-btn').style.display = 'block';
+        document.getElementById('stop-btn').style.display = 'none';
+        document.getElementById('refresh-btn').disabled = false;
+    });
 
-        document.getElementById('close-btn').addEventListener('click', () => {
-            stopScript();
-            ui.style.display = 'none';
-            // Show reopen button
-            if (!document.getElementById('sbc-reopen-btn')) {
-                const reopenBtn = document.createElement('div');
-                reopenBtn.id = 'sbc-reopen-btn';
-                reopenBtn.innerHTML = '🎯';
-                reopenBtn.style.cssText = `
+    document.getElementById('close-btn').addEventListener('click', () => {
+        stopScript();
+        ui.style.display = 'none';
+        // Show reopen button
+        if (!document.getElementById('sbc-reopen-btn')) {
+            const reopenBtn = document.createElement('div');
+            reopenBtn.id = 'sbc-reopen-btn';
+            reopenBtn.innerHTML = '🎯';
+            reopenBtn.style.cssText = `
                     position: fixed;
                     top: 20px;
                     right: 20px;
@@ -950,50 +963,50 @@
                     z-index: 999999;
                     transition: all 0.3s;
                 `;
-                reopenBtn.addEventListener('mouseenter', () => {
-                    reopenBtn.style.transform = 'scale(1.1)';
-                });
-                reopenBtn.addEventListener('mouseleave', () => {
-                    reopenBtn.style.transform = 'scale(1)';
-                });
-                reopenBtn.addEventListener('click', () => {
-                    ui.style.display = 'block';
-                    reopenBtn.remove();
-                });
-                document.body.appendChild(reopenBtn);
-            }
-        });
-    }
+            reopenBtn.addEventListener('mouseenter', () => {
+                reopenBtn.style.transform = 'scale(1.1)';
+            });
+            reopenBtn.addEventListener('mouseleave', () => {
+                reopenBtn.style.transform = 'scale(1)';
+            });
+            reopenBtn.addEventListener('click', () => {
+                ui.style.display = 'block';
+                reopenBtn.remove();
+            });
+            document.body.appendChild(reopenBtn);
+        }
+    });
+}
 
-    function updateUI() {
-        document.getElementById('sbcs-count').textContent = sbcsCompleted;
-        document.getElementById('packs-count').textContent = packsOpened;
-        document.getElementById('golds-count').textContent = goldsSentToStorage;
-        document.getElementById('sells-count').textContent = quickSells;
-    }
+function updateUI() {
+    document.getElementById('sbcs-count').textContent = sbcsCompleted;
+    document.getElementById('packs-count').textContent = packsOpened;
+    document.getElementById('golds-count').textContent = goldsSentToStorage;
+    document.getElementById('sells-count').textContent = quickSells;
+}
 
-    function log(message) {
-        console.log(message);
+function log(message) {
+    console.log(message);
 
-        const logContainer = document.getElementById('log-container');
-        if (logContainer) {
-            const entry = document.createElement('div');
-            entry.className = 'log-entry';
-            entry.textContent = `${new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} ${message}`;
-            logContainer.appendChild(entry);
-            logContainer.scrollTop = logContainer.scrollHeight;
+    const logContainer = document.getElementById('log-container');
+    if (logContainer) {
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        entry.textContent = `${new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} ${message}`;
+        logContainer.appendChild(entry);
+        logContainer.scrollTop = logContainer.scrollHeight;
 
-            // Keep only last 50 entries
-            while (logContainer.children.length > 50) {
-                logContainer.removeChild(logContainer.firstChild);
-            }
+        // Keep only last 50 entries
+        while (logContainer.children.length > 50) {
+            logContainer.removeChild(logContainer.firstChild);
         }
     }
+}
 
-    // ========== تهيئة ==========
-    console.log('✅ Paletools SBC Auto Completer loaded!');
-    createUI();
-    log('✅ تم تحميل السكربت بنجاح');
-    log('💡 اضغط "تحميل قائمة SBCs" للبدء');
+// ========== تهيئة ==========
+console.log('✅ Paletools SBC Auto Completer loaded!');
+createUI();
+log('✅ تم تحميل السكربت بنجاح');
+log('💡 اضغط "تحميل قائمة SBCs" للبدء');
 
-})();
+}) ();
