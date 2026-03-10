@@ -220,12 +220,19 @@
 
             // Check if SBC is completed
             const tileText = tile.textContent.toLowerCase();
-            const isCompleted = tile.classList.contains('completed') ||
-                tile.querySelector('.completed.icon') !== null ||
-                tile.querySelector('.checkmark') !== null ||
-                (tileText.includes('completed') && !tileText.includes('completed 0 times'));
+            const isRepeatable = tileText.includes('repeatable:');
+            
+            // If repeatable, always available regardless of completion count
+            let isCompleted = false;
+            if (!isRepeatable) {
+                isCompleted = tile.classList.contains('completed') ||
+                    tile.querySelector('.completed.icon') !== null ||
+                    tile.querySelector('.checkmark') !== null ||
+                    (tileText.includes('completed') && !tileText.includes('completed 0 times'));
+            }
 
             if (index < 3) {
+                log(`  Repeatable: ${isRepeatable}`);
                 log(`  Completed: ${isCompleted}`);
             }
 
