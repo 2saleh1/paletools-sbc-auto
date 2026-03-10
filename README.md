@@ -2,9 +2,17 @@
 
 أداة متطورة لأتمتة إكمال SBC وفتح الباكات وإدارة اللاعبين المكررين في EA FC Ultimate Team
 
+---
+
+## 🌐 الموقع المباشر
+
+**https://2saleh1.github.io/paletools-sbc-auto/**
+
+---
+
 ## دليل الاستخدام الكامل
 
-**[افتح دليل التثبيت التفاعلي - guide.html](guide.html)**
+**[📱 افتح دليل التثبيت التفاعلي](https://2saleh1.github.io/paletools-sbc-auto/)**
 
 الدليل يحتوي على:
 - تعليمات التثبيت التفاعلية (drag & drop bookmarklet)
@@ -38,7 +46,7 @@
 
 ### طريقة 1: Bookmarklet (موصى به للجوال)
 
-1. افتح **guide.html** في المتصفح
+1. افتح **[الدليل التفاعلي](https://2saleh1.github.io/paletools-sbc-auto/)**
 2. اسحب رابط "SBC Auto Completer" إلى شريط المفضلة
 3. في EA FC Web App (بعد تشغيل Paletools)، اضغط على Bookmark
 
@@ -59,7 +67,7 @@
 4. اختر SBC وحدد عدد الدورات
 5. اضغط "Start"
 
-**للتفاصيل الكاملة، افتح [guide.html](guide.html)**
+**[للتفاصيل الكاملة، افتح الدليل التفاعلي](https://2saleh1.github.io/paletools-sbc-auto/)**
 
 ---
 

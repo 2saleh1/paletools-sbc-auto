@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paletools SBC Auto Completer - Installation Guide</title>
+    <style>
+        :root {
+            --primary-blue: #1e3a8a;
+            --secondary-blue: #2563eb;
+            --accent-blue: #3b82f6;
+            --light-blue: #60a5fa;
+            --dark-bg: #0f172a;
+            --darker-bg: #020617;
+            --card-bg: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --border-color: #334155;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, var(--darker-bg) 0%, var(--dark-bg) 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Navigation */
+        nav {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--light-blue);
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            margin-left: 2rem;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--light-blue);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 4rem 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 3rem;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--light-blue) 0%, var(--secondary-blue) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+
+        .hero .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--secondary-blue) 0%, var(--accent-blue) 100%);
+            color: white;
+            padding: 1rem 2.5rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.3);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(37, 99, 235, 0.4);
+        }
+
+        /* Drag & Drop Section */
+        .install-section {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+            border-radius: 1rem;
+            padding: 3rem;
+            text-align: center;
+            margin-bottom: 3rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .install-section h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: white;
+        }
+
+        .install-section p {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 2rem;
+        }
+
+        .bookmark-link-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin: 2rem auto;
+            max-width: 600px;
+        }
+
+        .bookmark-link {
+            display: inline-block;
+            background: white;
+            color: var(--primary-blue);
+            padding: 1.25rem 3rem;
+            border-radius: 0.75rem;
+            text-decoration: none;
+            font-size: 1.25rem;
+            font-weight: 700;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+            cursor: move;
+        }
+
+        .bookmark-link:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .drag-instruction {
+            margin-top: 1.5rem;
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Cards */
+        .section {
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--light-blue);
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            transition: all 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.2);
+            border-color: var(--accent-blue);
+        }
+
+        .card-header {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--light-blue);
+            margin-bottom: 1rem;
+        }
+
+        .card-body {
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        /* Steps */
+        .steps {
+            counter-reset: step-counter;
+        }
+
+        .step {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            padding-right: 5rem;
+        }
+
+        .step::before {
+            counter-increment: step-counter;
+            content: counter(step-counter);
+            position: absolute;
+            left: 1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: linear-gradient(135deg, var(--secondary-blue) 0%, var(--accent-blue) 100%);
+            color: white;
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .step h3 {
+            font-size: 1.25rem;
+            color: var(--light-blue);
+            margin-bottom: 0.75rem;
+        }
+
+        .step p,
+        .step ul {
+            color: var(--text-secondary);
+        }
+
+        .step ul {
+            margin-right: 1.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .step li {
+            margin: 0.5rem 0;
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .feature {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .feature-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--light-blue);
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-desc {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        /* Alert Boxes */
+        .alert {
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border-right: 4px solid;
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: var(--warning);
+            color: var(--text-primary);
+        }
+
+        .alert-info {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: var(--accent-blue);
+            color: var(--text-primary);
+        }
+
+        .alert-title {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        /* Code Block */
+        .code-block {
+            background: var(--darker-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: var(--light-blue);
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            background: var(--card-bg);
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        th,
+        td {
+            padding: 1rem;
+            text-align: right;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--primary-blue);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 3rem 0;
+            margin-top: 5rem;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .hero .subtitle {
+                font-size: 1rem;
+            }
+
+            .install-section {
+                padding: 2rem 1.5rem;
+            }
+
+            .step {
+                padding-right: 1.5rem;
+                padding-left: 5rem;
+            }
+
+            .step::before {
+                right: auto;
+                left: 1rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <div class="logo">Paletools SBC Auto</div>
+            <div class="nav-links">
+                <a href="#install">Installation</a>
+                <a href="#features">Features</a>
+                <a href="#usage">Usage</a>
+                <a href="#settings">Settings</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="container">
+        <div class="hero">
+            <h1>SBC Auto Completer</h1>
+            <p class="subtitle">Automate SBC completion, pack opening, and duplicate management for EA FC Ultimate Team
+            </p>
+            <a href="sbc-auto-complete.js" download class="cta-button">Download Script</a>
+        </div>
+
+        <!-- Installation Section -->
+        <section id="install" class="install-section">
+            <h2>Quick Installation</h2>
+            <p>Drag the link below to your bookmarks bar and click it when EA FC Web App is loaded</p>
+
+            <div class="bookmark-link-container">
+                <a href="javascript:(function(){if(window.sbcAutoLoaded){alert('Script already loaded!');return;}var s=prompt('First time setup:\n\n1. Open file: sbc-auto-complete.js\n2. Copy all content (Ctrl+A, Ctrl+C)\n3. Paste here\n\nOr press Cancel to follow manual instructions.','PASTE_CODE_HERE');if(!s||s==='PASTE_CODE_HERE'){alert('Cancelled. Follow manual instructions below.');return;}try{eval(s);window.sbcAutoLoaded=true;alert('Script loaded successfully!');}catch(e){alert('Error in code. Make sure to copy the complete code from sbc-auto-complete.js');}})();"
+                    class="bookmark-link">
+                    SBC Auto Completer
+                </a>
+            </div>
+
+            <p class="drag-instruction">Drag this link to bookmarks bar, then click it in EA FC Web App (after
+                activating Paletools)</p>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="section">
+            <h2 class="section-title">Features</h2>
+
+            <div class="features-grid">
+                <div class="feature">
+                    <div class="feature-title">Auto Complete SBCs</div>
+                    <div class="feature-desc">Automatically completes SBCs using Paletools Smart Build</div>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-title">Pack Opening</div>
+                    <div class="feature-desc">Opens reward packs automatically after each SBC</div>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-title">Gold Management</div>
+                    <div class="feature-desc">Sends duplicate gold players to SBC Storage</div>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-title">Quick Sell</div>
+                    <div class="feature-desc">Auto quick-sells duplicate bronze and silver players</div>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-title">Smart Stop</div>
+                    <div class="feature-desc">Automatically stops when SBC Storage is full</div>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-title">Live Statistics</div>
+                    <div class="feature-desc">Real-time tracking of completed SBCs and opened packs</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works -->
+        <section class="section">
+            <h2 class="section-title">How It Works</h2>
+
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-header">Step 1: Select SBC</div>
+                    <div class="card-body">Choose which SBC to complete from the available list</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">Step 2: Smart Build</div>
+                    <div class="card-body">Uses Paletools Smart Build to auto-fill the squad</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">Step 3: Submit</div>
+                    <div class="card-body">Automatically submits the SBC and claims rewards</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">Step 4: Open Packs</div>
+                    <div class="card-body">Opens reward packs and manages duplicates</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">Step 5: Manage Duplicates</div>
+                    <div class="card-body">Golds to SBC Storage, Bronze/Silver quick-sold</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">Step 6: Repeat</div>
+                    <div class="card-body">Cycles through based on your configured settings</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Usage Instructions -->
+        <section id="usage" class="section">
+            <h2 class="section-title">Usage Instructions</h2>
+
+            <div class="alert alert-warning">
+                <div class="alert-title">Important Requirement</div>
+                <p>Paletools must be activated first. This script depends on the Smart Build feature.</p>
+            </div>
+
+            <div class="steps">
+                <div class="step">
+                    <h3>Preparation</h3>
+                    <ul>
+                        <li>Open EA FC Web App</li>
+                        <li>Activate Paletools (required)</li>
+                        <li>Ensure you have enough players in your club</li>
+                    </ul>
+                </div>
+
+                <div class="step">
+                    <h3>Activate Script</h3>
+                    <ul>
+                        <li>Click the bookmark you created</li>
+                        <li>Side panel will appear on screen</li>
+                    </ul>
+                </div>
+
+                <div class="step">
+                    <h3>Load SBC List</h3>
+                    <ul>
+                        <li>Click "Load SBC List" button</li>
+                        <li>Wait for the list to populate</li>
+                    </ul>
+                </div>
+
+                <div class="step">
+                    <h3>Configure Settings</h3>
+                    <ul>
+                        <li>Select SBC from dropdown</li>
+                        <li>Set number of cycles</li>
+                        <li>Configure duplicate management options</li>
+                    </ul>
+                </div>
+
+                <div class="step">
+                    <h3>Start Automation</h3>
+                    <ul>
+                        <li>Click "Start" button</li>
+                        <li>Monitor progress in real-time</li>
+                        <li>Can stop anytime using "Stop" button</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings -->
+        <section id="settings" class="section">
+            <h2 class="section-title">Configuration Options</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Setting</th>
+                        <th>Description</th>
+                        <th>Default</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Gold to SBC Storage</td>
+                        <td>Send duplicate gold players to SBC Storage</td>
+                        <td>Enabled</td>
+                    </tr>
+                    <tr>
+                        <td>Bronze/Silver Quick Sell</td>
+                        <td>Automatically quick-sell duplicate bronze and silver players</td>
+                        <td>Enabled</td>
+                    </tr>
+                    <tr>
+                        <td>Stop on Storage Full</td>
+                        <td>Stop script when SBC Storage reaches capacity</td>
+                        <td>Enabled</td>
+                    </tr>
+                    <tr>
+                        <td>Cycles</td>
+                        <td>Number of times to repeat the process</td>
+                        <td>1</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="alert alert-info">
+                <div class="alert-title">Advanced Configuration</div>
+                <p>Edit the CONFIG object at the top of sbc-auto-complete.js for more options like timing delays and
+                    pack counts.</p>
+            </div>
+        </section>
+
+        <!-- Workflow -->
+        <section class="section">
+            <h2 class="section-title">Complete Workflow</h2>
+
+            <div class="code-block">
+                1. Select SBC from list
+                2. Click Smart Build (Paletools)
+                3. Wait for squad completion
+                4. Submit SBC
+                5. Claim rewards
+                6. Open reward packs
+                7. Process duplicates:
+                - Gold duplicates → SBC Storage
+                - Bronze/Silver duplicates → Quick Sell
+                - Other items → Club
+                8. Repeat cycle (if configured)
+            </div>
+        </section>
+
+        <!-- Warnings -->
+        <section class="section">
+            <h2 class="section-title">Important Warnings</h2>
+
+            <div class="alert alert-warning">
+                <div class="alert-title">Use at Your Own Risk</div>
+                <ul style="margin-top: 0.75rem; margin-right: 1.5rem;">
+                    <li>EA may consider this against Terms of Service</li>
+                    <li>Always monitor script execution - do not leave unattended</li>
+                    <li>Test on cheap SBCs first before using on expensive ones</li>
+                    <li>Ensure SBC Storage has available space</li>
+                    <li>Script requires Paletools to be activated</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Troubleshooting -->
+        <section class="section">
+            <h2 class="section-title">Troubleshooting</h2>
+
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-header">Script Not Working</div>
+                    <div class="card-body">
+                        <ul>
+                            <li>Ensure Paletools is activated first</li>
+                            <li>Refresh EA FC Web App</li>
+                            <li>Verify code was copied completely</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">Empty List</div>
+                    <div class="card-body">
+                        <ul>
+                            <li>Navigate to SBC section first</li>
+                            <li>All SBCs may be completed</li>
+                            <li>Try refreshing the list</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">Smart Build Fails</div>
+                    <div class="card-body">
+                        <ul>
+                            <li>Update Paletools to latest version</li>
+                            <li>Need more players in club</li>
+                            <li>Try different SBC</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">Sudden Stop</div>
+                    <div class="card-body">
+                        <ul>
+                            <li>SBC Storage may be full</li>
+                            <li>Not enough players available</li>
+                            <li>Check console for errors (F12)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer>
+            <p>Paletools SBC Auto Completer</p>
+            <p style="margin-top: 0.5rem;">Automation tool for EA FC Ultimate Team</p>
+        </footer>
+    </div>
+</body>
+
+</html>
