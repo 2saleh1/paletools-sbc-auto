@@ -114,39 +114,81 @@
 
         sbcList = [];
         sbcTiles.forEach((tile, index) => {
-            // Try to find the actual title element, not the entire tile text
             let name = '';
             
-            // Strategy 1: Direct title class
-            const titleEl = tile.querySelector('.title');
-            if (titleEl) {
-                name = titleEl.childNodes[0]?.textContent?.trim() || titleEl.textContent.trim();
+            // Strategy 1: Look for direct title in specific EA structure
+            const titleContainer = tile.querySelector('.ut-sbc-set-tile-info, .tile-info');
+            if (titleContainer) {
+                const titleEl = titleContainer.querySelector('.title, h2, h3');
+                if (titleEl) {
+                    // Get only the first text node to avoid getting child elements text
+                    for (const node of titleEl.childNodes) {
+                        if (node.nodeType === Node.TEXT_NODE) {
+                            const text = node.textContent.trim();
+                            if (text && !text.match(/^\d+\/\d+/)) {
+                                name = text;
+                                break;
+                            }
+                        }
+                    }
+                }
             }
             
-            // Strategy 2: SBC specific classes
+            // Strategy 2: Direct .title class with text node extraction
             if (!name) {
-                const nameEl = tile.querySelector('.ut-sbc-set-tile-name, .set-name, .sbc-name');
-                if (nameEl) name = nameEl.textContent.trim();
+                const titleEl = tile.querySelector('.title');
+                if (titleEl) {
+                    for (const node of titleEl.childNodes) {
+                        if (node.nodeType === Node.TEXT_NODE) {
+                            const text = node.textContent.trim();
+                            if (text && !text.match(/^\d+\/\d+/)) {
+                                name = text;
+                                break;
+                            }
+                        }
+                    }
+                }
             }
             
-            // Strategy 3: Header tags but get first child only
+            // Strategy 3: SBC specific name classes
             if (!name) {
-                const headerEl = tile.querySelector('h2, h3, h4');
-                if (headerEl) name = headerEl.childNodes[0]?.textContent?.trim() || headerEl.textContent.trim();
+                const nameEl = tile.querySelector('.ut-sbc-set-tile-name, .set-name, .sbc-name, [class*="tile-name"]');
+                if (nameEl) {
+                    name = nameEl.textContent.trim();
+                }
             }
             
-            // Strategy 4: Extract first meaningful line
+            // Strategy 4: Extract from full text intelligently
             if (!name) {
                 const fullText = tile.textContent.trim();
-                const lines = fullText.split('\n').filter(l => l.trim() && !l.match(/^\d+\/\d+/));
-                name = lines[0]?.trim() || '';
+                // Split by newlines and find first line that doesn't match common patterns
+                const lines = fullText.split('\n')
+                    .map(l => l.trim())
+                    .filter(l => l.length > 0)
+                    .filter(l => !l.match(/^\d+\/\d+/)) // Remove "0/5" patterns
+                    .filter(l => !l.match(/^(SBCs?|Challenges?|Complete|Expires?)$/i)); // Remove common words
+                
+                if (lines.length > 0) {
+                    name = lines[0];
+                }
             }
             
-            // Clean up name - remove SBC counts like "0/5 SBCs"
-            name = name.replace(/\d+\/\d+\s*SBCs?/gi, '').trim();
-            name = name.split('\n')[0].trim(); // Take first line only
+            // Deep clean the name
+            if (name) {
+                // Remove "X/Y SBC(s)" patterns
+                name = name.replace(/\d+\/\d+\s*SBCs?/gi, '');
+                // Remove extra whitespace
+                name = name.replace(/\s+/g, ' ').trim();
+                // Take only first line if still has newlines
+                name = name.split('\n')[0].trim();
+                // Remove trailing/leading special characters
+                name = name.replace(/^[\s:|\-–—]+|[\s:|\-–—]+$/g, '');
+            }
             
-            if (!name || name.length === 0) name = `SBC ${index + 1}`;
+            // Fallback
+            if (!name || name.length < 3) {
+                name = `SBC ${index + 1}`;
+            }
 
             const isCompleted = tile.querySelector('.completed, .checkmark, [class*="complete"]');
 
@@ -156,6 +198,9 @@
                     name: name,
                     index: sbcList.length
                 });
+                
+                // Debug log to help see what we extracted
+                console.log(`SBC Found: "${name}"`);
             }
         });
 
