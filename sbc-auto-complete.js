@@ -112,16 +112,17 @@
             sbcTiles = document.querySelectorAll('.ut-tile-transfer-market, .sbc-tile, [class*="tile"][class*="sbc"]');
         }
 
-        console.log(`=== DEBUG: Found ${sbcTiles.length} SBC tiles ===`);
+        log(`🔍 عثرت على ${sbcTiles.length} بطاقة SBC`);
 
         sbcList = [];
         sbcTiles.forEach((tile, index) => {
             let name = '';
             
             // Debug: Log the tile structure
-            console.log(`\n--- Tile ${index + 1} ---`);
-            console.log('HTML:', tile.innerHTML.substring(0, 200));
-            console.log('Classes:', tile.className);
+            if (index < 3) { // Show only first 3 for debugging
+                log(`\n--- البطاقة ${index + 1} ---`);
+                log(`Classes: ${tile.className}`);
+            }
             
             // STRATEGY 1: Search in all possible text containers
             const allTextElements = tile.querySelectorAll('*');
@@ -135,7 +136,9 @@
                 
                 if (hasTitle) {
                     const text = el.textContent.trim();
-                    console.log(`  Found title element (${el.tagName}.${el.className}): "${text}"`);
+                    if (index < 3) {
+                        log(`  وجدت عنصر عنوان: "${text.substring(0, 50)}"`);
+                    }
                     
                     // Try to get first text node
                     for (const node of el.childNodes) {
@@ -143,7 +146,9 @@
                             const nodeText = node.textContent.trim();
                             if (nodeText && nodeText.length > 2 && !nodeText.match(/^\d+\/\d+/)) {
                                 name = nodeText;
-                                console.log(`  ✓ Using text node: "${name}"`);
+                                if (index < 3) {
+                                    log(`  ✓ استخدام النص: "${name}"`);
+                                }
                                 break;
                             }
                         }
@@ -156,7 +161,6 @@
                         const cleanText = text.split('\n')[0].trim();
                         if (!cleanText.match(/^\d+\/\d+/)) {
                             name = cleanText;
-                            console.log(`  ✓ Using cleaned text: "${name}"`);
                             break;
                         }
                     }
@@ -170,7 +174,6 @@
                                 tile.getAttribute('aria-label');
                 if (dataName && dataName.length > 2) {
                     name = dataName;
-                    console.log(`  ✓ Using data attribute: "${name}"`);
                 }
             }
             
@@ -185,7 +188,6 @@
                 
                 if (lines.length > 0) {
                     name = lines[0];
-                    console.log(`  ✓ Using first line: "${name}"`);
                 }
             }
             
@@ -199,9 +201,8 @@
             // Fallback
             if (!name || name.length < 3) {
                 name = `[Unknown SBC ${index + 1}]`;
-                console.log(`  ✗ No name found, using fallback`);
-            } else {
-                console.log(`  ✅ Final name: "${name}"`);
+            } else if (index < 3) {
+                log(`  ✅ الاسم النهائي: "${name}"`);
             }
 
             const isCompleted = tile.querySelector('.completed, .checkmark, [class*="complete"]');
@@ -215,10 +216,9 @@
             }
         });
 
-        console.log(`\n=== Total SBCs loaded: ${sbcList.length} ===\n`);
-        log(`📊 تم العثور على ${sbcList.length} SBC متاح`);
+        log(`\n📊 تم العثور على ${sbcList.length} SBC متاح`);
         
-        // Show alert with first few SBC names for verification
+        // Show first 3 SBC names for verification
         if (sbcList.length > 0) {
             const sampleNames = sbcList.slice(0, 3).map(s => s.name).join('\n');
             log(`أول 3 أسماء:\n${sampleNames}`);
