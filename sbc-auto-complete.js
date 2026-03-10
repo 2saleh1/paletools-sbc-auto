@@ -272,17 +272,38 @@
 
         // Click on the SBC tile
         currentSBC = sbcList[sbcIndex];
+        
+        // Scroll to element so user can see it
+        currentSBC.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        await wait(500);
+        
+        // Highlight the element briefly
+        currentSBC.element.style.outline = '3px solid #3b82f6';
+        await wait(300);
+        currentSBC.element.style.outline = '';
+        
         currentSBC.element.click();
         await wait(CONFIG.WAIT_TIME);
 
         // Click on first challenge if multiple challenges exist
         const challenges = document.querySelectorAll('.ut-sbc-challenge-tile, .challenge-tile');
         if (challenges.length > 0) {
+            log(`🔍 تم العثور على ${challenges.length} تحدي`);
             // Find incomplete challenge
             for (const challenge of challenges) {
                 const isComplete = challenge.querySelector('.completed, .checkmark');
                 if (!isComplete) {
+                    // Scroll to challenge
+                    challenge.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    await wait(500);
+                    
+                    // Highlight
+                    challenge.style.outline = '3px solid #10b981';
+                    await wait(300);
+                    challenge.style.outline = '';
+                    
                     challenge.click();
+                    log('✅ تم فتح التحدي');
                     await wait(CONFIG.WAIT_TIME);
                     break;
                 }
@@ -310,14 +331,28 @@
 
         if (button) {
             log('✅ تم العثور على زر Smart Builder');
+            
+            // Scroll to button
+            button.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            await wait(500);
+            
+            // Highlight button
+            button.style.outline = '3px solid #f59e0b';
+            await wait(300);
+            button.style.outline = '';
+            
             button.click();
             log('⏳ انتظار اكتمال البناء (أقصى 60ث)...');
 
             // Wait for Smart Builder to complete by checking for Submit button
-            // Check every 2 seconds for up to 60 seconds
+            // Check every 500ms (faster detection) for up to 60 seconds
             let buildComplete = false;
-            for (let i = 0; i < 30; i++) {
-                await wait(2000);
+            let checksCount = 0;
+            const maxChecks = 120; // 120 checks * 500ms = 60 seconds
+            
+            for (let i = 0; i < maxChecks; i++) {
+                await wait(500);
+                checksCount++;
                 
                 // Check if Submit/Exchange button appeared (means build is complete)
                 const submitSelectors = [
@@ -340,7 +375,13 @@
                         
                         if (!isDisabled) {
                             buildComplete = true;
-                            log(`✅ تم اكتمال Smart Builder بعد ${(i + 1) * 2} ثانية`);
+                            const totalSeconds = Math.round(checksCount * 0.5);
+                            log(`✅ تم اكتمال Smart Builder بعد ${totalSeconds} ثانية`);
+                            
+                            // Scroll to Submit button
+                            submitBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            await wait(300);
+                            
                             break;
                         }
                     }
@@ -348,9 +389,10 @@
                 
                 if (buildComplete) break;
                 
-                // Show progress every 10 seconds
-                if ((i + 1) % 5 === 0) {
-                    log(`⏳ لا يزال يبني... ${(i + 1) * 2}/60ث`);
+                // Show progress every 5 seconds (10 checks)
+                if (checksCount % 10 === 0) {
+                    const elapsed = Math.round(checksCount * 0.5);
+                    log(`⏳ لا يزال يبني... ${elapsed}/60ث`);
                 }
             }
 
