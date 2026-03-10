@@ -312,20 +312,39 @@
             log('✅ تم العثور على زر Smart Builder');
             button.click();
             log('⏳ انتظار اكتمال البناء...');
+
+            // Wait for Smart Builder to complete by checking for Submit button
+            // Check every second for up to 30 seconds
+            let buildComplete = false;
+            for (let i = 0; i < 30; i++) {
+                await wait(1000);
+                
+                // Check if Submit/Exchange button appeared (means build is complete)
+                const submitBtn = document.querySelector('button.btn-standard.call-to-action') ||
+                    document.querySelector('button[class*="submit"]') ||
+                    findElementByText('Submit', 'button') ||
+                    findElementByText('Exchange', 'button');
+                
+                if (submitBtn && submitBtn.offsetParent !== null) {
+                    buildComplete = true;
+                    log(`✅ تم اكتمال Smart Builder بعد ${i + 1} ثانية`);
+                    break;
+                }
+            }
+
+            if (!buildComplete) {
+                log('⚠️ انتهى وقت الانتظار (30ث) - متابعة للخطوة التالية...');
+            }
             
-            // Wait for Smart Builder to complete (usually takes 5-15 seconds)
-            await wait(CONFIG.WAIT_TIME * 8); // 16 seconds
-            
-            log('✅ تم اكتمال Smart Builder');
             return true;
         }
 
         log('⚠️ لم يتم العثور على زر Smart Builder - تأكد أن Paletools شغال');
-        
+
         // Try keyboard shortcut as fallback
         document.dispatchEvent(new KeyboardEvent('keydown', { key: 'b', ctrlKey: true }));
         await wait(CONFIG.WAIT_TIME * 8);
-        
+
         return false;
     }
 
@@ -333,38 +352,43 @@
     async function submitSBC() {
         log('📤 إرسال SBC...');
 
-        // Wait for squad to be built
-        await wait(CONFIG.WAIT_TIME);
+        // Wait a moment for UI to be ready
+        await wait(1000);
 
-        // Click submit/exchange button
-        const submitSelectors = [
-            'button.btn-standard.call-to-action',
-            'button:contains("Submit")',
-            'button:contains("Exchange")',
-            'button[class*="submit"]',
-            '.ut-button-group button.call-to-action'
-        ];
+        // Click submit/exchange button with improved selectors
+        const submitBtn = document.querySelector('button.btn-standard.call-to-action') ||
+            document.querySelector('button[class*="call-to-action"]') ||
+            document.querySelector('button[class*="submit"]') ||
+            findElementByText('Submit', 'button') ||
+            findElementByText('Exchange', 'button') ||
+            findElementByText('تقديم', 'button') || // Arabic
+            findElementByText('إرسال', 'button'); // Arabic
 
-        for (const selector of submitSelectors) {
-            if (await clickElement(selector)) {
-                log('✅ تم تقديم SBC');
+        if (submitBtn && submitBtn.offsetParent !== null) {
+            log('✅ تم العثور على زر Submit');
+            submitBtn.click();
+            await wait(CONFIG.WAIT_TIME);
+
+            // Confirm if needed
+            await wait(500);
+            const confirmButton = findElementByText('Confirm', 'button') ||
+                findElementByText('Yes', 'button') ||
+                findElementByText('تأكيد', 'button') ||
+                document.querySelector('.ut-button-group button.call-to-action');
+            
+            if (confirmButton && confirmButton.offsetParent !== null) {
+                log('📝 تأكيد الإرسال...');
+                confirmButton.click();
                 await wait(CONFIG.WAIT_TIME);
-
-                // Confirm if needed
-                const confirmButton = findElementByText('Confirm', 'button') ||
-                    findElementByText('Yes', 'button');
-                if (confirmButton) {
-                    confirmButton.click();
-                    await wait(CONFIG.WAIT_TIME);
-                }
-
-                sbcsCompleted++;
-                updateUI();
-                return true;
             }
+
+            log('✅ تم تقديم SBC بنجاح');
+            sbcsCompleted++;
+            updateUI();
+            return true;
         }
 
-        log('❌ فشل تقديم SBC');
+        log('❌ فشل تقديم SBC - لم يتم العثور على زر Submit');
         return false;
     }
 
