@@ -116,7 +116,7 @@
 
         sbcList = [];
         let extractionErrors = 0;
-        
+
         sbcTiles.forEach((tile, index) => {
             let name = '';
 
@@ -180,6 +180,19 @@
 
                 if (lines.length > 0) {
                     name = lines[0];
+                    // Cut off at common description starts
+                    const cutOffWords = [
+                        'Earn ', 'Get ', 'Complete ', 'Build ', 'Submit ',
+                        'Group Rewards', 'For You', 'Repeatable:', 'Expires',
+                        'Non-Repeatable', 'Hours', 'Days', 'Minutes'
+                    ];
+                    for (const word of cutOffWords) {
+                        const cutIndex = name.indexOf(word);
+                        if (cutIndex > 5) { // Keep at least 5 chars
+                            name = name.substring(0, cutIndex).trim();
+                            break;
+                        }
+                    }
                     if (index < 3) {
                         log(`  ✓ Found from text: "${name}"`);
                     }
@@ -205,7 +218,16 @@
                 log(`  ✅ Final name: "${name}"`);
             }
 
-            const isCompleted = tile.querySelector('.completed, .checkmark, [class*="complete"]');
+            // Check if SBC is completed
+            const tileText = tile.textContent.toLowerCase();
+            const isCompleted = tile.classList.contains('completed') ||
+                tile.querySelector('.completed.icon') !== null ||
+                tile.querySelector('.checkmark') !== null ||
+                (tileText.includes('completed') && !tileText.includes('completed 0 times'));
+
+            if (index < 3) {
+                log(`  Completed: ${isCompleted}`);
+            }
 
             if (!isCompleted) {
                 sbcList.push({
@@ -994,7 +1016,7 @@
             const logContainer = document.getElementById('log-container');
             const logEntries = logContainer.querySelectorAll('.log-entry');
             const logText = Array.from(logEntries).map(entry => entry.textContent).join('\n');
-            
+
             // Copy to clipboard
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(logText).then(() => {
