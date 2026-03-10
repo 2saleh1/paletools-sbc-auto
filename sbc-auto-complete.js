@@ -311,40 +311,70 @@
         if (button) {
             log('✅ تم العثور على زر Smart Builder');
             button.click();
-            log('⏳ انتظار اكتمال البناء...');
+            log('⏳ انتظار اكتمال البناء (أقصى 60ث)...');
 
             // Wait for Smart Builder to complete by checking for Submit button
-            // Check every second for up to 30 seconds
+            // Check every 2 seconds for up to 60 seconds
             let buildComplete = false;
             for (let i = 0; i < 30; i++) {
-                await wait(1000);
+                await wait(2000);
                 
                 // Check if Submit/Exchange button appeared (means build is complete)
-                const submitBtn = document.querySelector('button.btn-standard.call-to-action') ||
-                    document.querySelector('button[class*="submit"]') ||
-                    findElementByText('Submit', 'button') ||
-                    findElementByText('Exchange', 'button');
+                const submitSelectors = [
+                    'button.btn-standard.call-to-action',
+                    'button.call-to-action',
+                    'button[class*="call-to-action"]',
+                    'button[class*="submit"]',
+                    '.ut-squad-pitch-view button.call-to-action',
+                    '.ut-sbc-challenge-details button.call-to-action'
+                ];
                 
-                if (submitBtn && submitBtn.offsetParent !== null) {
-                    buildComplete = true;
-                    log(`✅ تم اكتمال Smart Builder بعد ${i + 1} ثانية`);
-                    break;
+                let submitBtn = null;
+                for (const selector of submitSelectors) {
+                    submitBtn = document.querySelector(selector);
+                    if (submitBtn && submitBtn.offsetParent !== null) {
+                        // Verify it's not disabled
+                        const isDisabled = submitBtn.disabled || 
+                            submitBtn.classList.contains('disabled') ||
+                            submitBtn.getAttribute('disabled') !== null;
+                        
+                        if (!isDisabled) {
+                            buildComplete = true;
+                            log(`✅ تم اكتمال Smart Builder بعد ${(i + 1) * 2} ثانية`);
+                            break;
+                        }
+                    }
+                }
+                
+                if (buildComplete) break;
+                
+                // Show progress every 10 seconds
+                if ((i + 1) % 5 === 0) {
+                    log(`⏳ لا يزال يبني... ${(i + 1) * 2}/60ث`);
                 }
             }
 
             if (!buildComplete) {
-                log('⚠️ انتهى وقت الانتظار (30ث) - متابعة للخطوة التالية...');
+                log('⚠️ انتهى وقت الانتظار (60ث)');
+                log('🔍 تحقق من حالة الصفحة...');
+                
+                // Debug: Check what's on the page
+                const allButtons = document.querySelectorAll('button');
+                log(`🔍 عدد الأزرار في الصفحة: ${allButtons.length}`);
+                
+                // Check for error messages
+                const errorMsg = document.querySelector('.notification.error, .ut-notification--error');
+                if (errorMsg) {
+                    log(`❌ رسالة خطأ: ${errorMsg.textContent.trim()}`);
+                }
+                
+                return false;
             }
             
             return true;
         }
 
         log('⚠️ لم يتم العثور على زر Smart Builder - تأكد أن Paletools شغال');
-
-        // Try keyboard shortcut as fallback
-        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'b', ctrlKey: true }));
-        await wait(CONFIG.WAIT_TIME * 8);
-
         return false;
     }
 
@@ -353,20 +383,52 @@
         log('📤 إرسال SBC...');
 
         // Wait a moment for UI to be ready
-        await wait(1000);
+        await wait(1500);
 
-        // Click submit/exchange button with improved selectors
-        const submitBtn = document.querySelector('button.btn-standard.call-to-action') ||
-            document.querySelector('button[class*="call-to-action"]') ||
-            document.querySelector('button[class*="submit"]') ||
-            findElementByText('Submit', 'button') ||
-            findElementByText('Exchange', 'button') ||
-            findElementByText('تقديم', 'button') || // Arabic
-            findElementByText('إرسال', 'button'); // Arabic
+        // Try to find Submit button with multiple strategies
+        log('🔍 البحث عن زر Submit...');
+        
+        const submitSelectors = [
+            'button.btn-standard.call-to-action',
+            'button.call-to-action',
+            'button[class*="call-to-action"]',
+            'button[class*="submit"]',
+            '.ut-squad-pitch-view button.call-to-action',
+            '.ut-sbc-challenge-details button.call-to-action',
+            '.ut-button-group button.call-to-action'
+        ];
+        
+        let submitBtn = null;
+        for (const selector of submitSelectors) {
+            const btn = document.querySelector(selector);
+            if (btn && btn.offsetParent !== null) {
+                const isDisabled = btn.disabled || 
+                    btn.classList.contains('disabled') ||
+                    btn.getAttribute('disabled') !== null;
+                
+                if (!isDisabled) {
+                    submitBtn = btn;
+                    log(`✅ تم العثور على زر Submit: ${selector}`);
+                    break;
+                }
+            }
+        }
+        
+        // Fallback: Search by text
+        if (!submitBtn) {
+            submitBtn = findElementByText('Submit', 'button') ||
+                findElementByText('Exchange', 'button') ||
+                findElementByText('تقديم', 'button') ||
+                findElementByText('إرسال', 'button');
+            
+            if (submitBtn && submitBtn.offsetParent !== null) {
+                log('✅ تم العثور على زر Submit (عن طريق النص)');
+            }
+        }
 
         if (submitBtn && submitBtn.offsetParent !== null) {
-            log('✅ تم العثور على زر Submit');
             submitBtn.click();
+            log('👆 تم الضغط على زر Submit');
             await wait(CONFIG.WAIT_TIME);
 
             // Confirm if needed
@@ -375,7 +437,7 @@
                 findElementByText('Yes', 'button') ||
                 findElementByText('تأكيد', 'button') ||
                 document.querySelector('.ut-button-group button.call-to-action');
-            
+
             if (confirmButton && confirmButton.offsetParent !== null) {
                 log('📝 تأكيد الإرسال...');
                 confirmButton.click();
@@ -388,7 +450,24 @@
             return true;
         }
 
+        // Debug info if button not found
         log('❌ فشل تقديم SBC - لم يتم العثور على زر Submit');
+        log('🔍 معلومات Debug:');
+        const allButtons = document.querySelectorAll('button');
+        log(`  - عدد الأزرار: ${allButtons.length}`);
+        
+        // List visible buttons
+        const visibleButtons = Array.from(allButtons)
+            .filter(btn => btn.offsetParent !== null)
+            .slice(0, 5);
+        
+        if (visibleButtons.length > 0) {
+            log(`  - أول 5 أزرار مرئية:`);
+            visibleButtons.forEach((btn, i) => {
+                log(`    ${i + 1}. ${btn.className} - "${btn.textContent.trim().substring(0, 30)}"`);
+            });
+        }
+        
         return false;
     }
 
@@ -618,8 +697,9 @@
         // 4. Use Smart Build
         const buildSuccess = await usePaletoolsSmartBuild();
         if (!buildSuccess) {
-            log('❌ فشل Smart Builder - تأكد أن Paletools شغال');
-            return false;
+            log('⚠️ Smart Builder لم يكتمل في الوقت المحدد');
+            log('🔄 محاولة الإرسال على أي حال...');
+            // Don't return false - try to submit anyway
         }
 
         // 5. Submit SBC
