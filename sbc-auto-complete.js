@@ -282,14 +282,45 @@
         await wait(300);
         currentSBC.element.style.outline = '';
 
-        // Click on the tile container (not on children like paletools tab)
-        // Find the main clickable area (usually the header or container)
-        const tileHeader = currentSBC.element.querySelector('.ut-sbc-set-header, .sbc-set-header, .ut-tile-content');
-        const clickTarget = tileHeader || currentSBC.element;
+        // Try multiple click methods to ensure it works
+        const clickTarget = currentSBC.element;
         
-        log(`🖱️ Clicking on: ${clickTarget.className}`);
+        log(`🖱️ Clicking SBC tile...`);
+        
+        // Method 1: Regular click
         clickTarget.click();
+        await wait(500);
+        
+        // Method 2: Dispatch mouse event (more reliable)
+        const clickEvent = new MouseEvent('click', {
+            view: window,
+            bubbles: true,
+            cancelable: true
+        });
+        clickTarget.dispatchEvent(clickEvent);
         await wait(CONFIG.WAIT_TIME);
+
+        // Verify SBC opened by checking for challenges or squad builder
+        await wait(1000);
+        const sbcOpened = document.querySelector('.ut-sbc-challenge-tile, .challenge-tile, .ut-squad-builder-container, .ut-squad-pitch-view');
+        
+        if (!sbcOpened) {
+            log('⚠️ لم يتم فتح SBC - محاولة مرة أخرى...');
+            // Try clicking again with different method
+            const linkElement = clickTarget.querySelector('a, [role="button"]');
+            if (linkElement) {
+                log('🔄 محاولة الضغط على الرابط الداخلي...');
+                linkElement.click();
+                await wait(CONFIG.WAIT_TIME);
+            } else {
+                // Force navigation if click doesn't work
+                log('🔄 استخدام طريقة بديلة...');
+                clickTarget.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+                await wait(100);
+                clickTarget.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+                await wait(CONFIG.WAIT_TIME);
+            }
+        }
 
         // Click on first challenge if multiple challenges exist
         const challenges = document.querySelectorAll('.ut-sbc-challenge-tile, .challenge-tile');
@@ -308,7 +339,9 @@
                     await wait(300);
                     challenge.style.outline = '';
 
+                    // Use both click methods
                     challenge.click();
+                    challenge.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
                     log('✅ تم فتح التحدي');
                     await wait(CONFIG.WAIT_TIME);
                     break;
@@ -316,8 +349,16 @@
             }
         }
 
-        log('✅ تم فتح SBC');
-        return true;
+        // Final verification
+        await wait(500);
+        const finalCheck = document.querySelector('.ut-squad-builder-container, .ut-squad-pitch-view, .ut-sbc-squad-overview');
+        if (finalCheck) {
+            log('✅ تم فتح SBC بنجاح');
+            return true;
+        } else {
+            log('❌ فشل فتح SBC');
+            return false;
+        }
     }
 
     // ========== استخدام Smart Build ==========
