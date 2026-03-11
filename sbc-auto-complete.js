@@ -351,9 +351,9 @@
         // Search for Smart Builder button directly
         // Button details (from recording): BUTTON, class="btn-standard primary", text="Smart Builder", parent="smart-builder-container"
         log('🔍 البحث عن زر Smart Builder...');
-        
+
         let button = null;
-        
+
         // Method 1: Search by exact class and text (most reliable)
         const buttons = document.querySelectorAll('button.btn-standard.primary, button.btn-standard');
         for (const btn of buttons) {
@@ -364,7 +364,7 @@
                 break;
             }
         }
-        
+
         // Method 2: Search within smart-builder-container
         if (!button) {
             const container = document.querySelector('.smart-builder-container');
@@ -377,7 +377,7 @@
                 }
             }
         }
-        
+
         // Method 3: Search by text content (fallback)
         if (!button) {
             button = findElementByText('Smart Builder', 'button') ||
@@ -400,7 +400,22 @@
             await wait(300);
             button.style.outline = '';
 
+            // Click using multiple methods (EA might not respond to regular click)
+            log('🖱️ الضغط على زر Smart Builder...');
+            
+            // Method 1: Regular click
             button.click();
+            await wait(100);
+            
+            // Method 2: MouseEvent dispatch (more reliable)
+            button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+            await wait(100);
+            
+            // Method 3: mousedown + mouseup
+            button.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+            await wait(50);
+            button.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+            
             log('⏳ انتظار اكتمال البناء (أقصى 60ث)...');
 
             // Wait for Smart Builder to complete by checking for Submit button
@@ -528,7 +543,25 @@
         }
 
         if (submitBtn && submitBtn.offsetParent !== null) {
+            // Scroll to Submit button
+            submitBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            await wait(300);
+            
+            // Highlight
+            submitBtn.style.outline = '3px solid #10b981';
+            await wait(200);
+            submitBtn.style.outline = '';
+            
+            // Click using multiple methods (EA might not respond to regular click)
+            log('🖱️ الضغط على زر Submit...');
             submitBtn.click();
+            await wait(100);
+            submitBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+            await wait(100);
+            submitBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+            await wait(50);
+            submitBtn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+            
             log('👆 تم الضغط على زر Submit');
             await wait(CONFIG.WAIT_TIME);
 
@@ -541,7 +574,10 @@
 
             if (confirmButton && confirmButton.offsetParent !== null) {
                 log('📝 تأكيد الإرسال...');
+                // Use multiple click methods for confirm too
                 confirmButton.click();
+                await wait(50);
+                confirmButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
                 await wait(CONFIG.WAIT_TIME);
             }
 
@@ -1320,11 +1356,11 @@
         let mousedownListener = null;
         let hoverListener = null;
         let keyListener = null;
-        
+
         document.getElementById('record-btn').addEventListener('click', () => {
             recordMode = !recordMode;
             const btn = document.getElementById('record-btn');
-            
+
             if (recordMode) {
                 // Activate record mode
                 btn.textContent = '🔴 وضع التسجيل: تشغيل';
@@ -1334,16 +1370,16 @@
                 log('اضغط على أي عنصر في الصفحة');
                 log('✅ Listener activated on entire page');
                 log('═══════════════════════════');
-                
+
                 // Add click listener to capture ALL clicks (including EA Web App)
-                clickListener = function(e) {
+                clickListener = function (e) {
                     // Skip clicks on script UI to avoid spam
                     if (e.target.closest('#sbc-auto-ui') || e.target.id === 'sbc-reopen-btn') {
                         return;
                     }
-                    
+
                     const el = e.target;
-                    
+
                     // Log element details
                     log('═══════════════════════════');
                     log('🎯 Element clicked:');
@@ -1353,7 +1389,7 @@
                     log(`Text: ${el.textContent.trim().substring(0, 50)}`);
                     log(`Title: ${el.title || '(no title)'}`);
                     log(`Role: ${el.getAttribute('role') || '(no role)'}`);
-                    
+
                     // Data attributes
                     const dataAttrs = Object.keys(el.dataset);
                     if (dataAttrs.length > 0) {
@@ -1361,31 +1397,31 @@
                     } else {
                         log('Data attrs: (none)');
                     }
-                    
+
                     // Parent info
                     if (el.parentElement) {
                         log(`Parent tag: ${el.parentElement.tagName}`);
                         log(`Parent class: ${el.parentElement.className || '(no class)'}`);
                     }
-                    
+
                     // Check if in squad area
                     const inSquad = el.closest('.ut-squad-pitch-view, .ut-squad-builder-container, .ut-sbc-squad-overview');
                     log(`In squad area: ${inSquad ? 'YES ✅' : 'NO ❌'}`);
-                    
+
                     log('═══════════════════════════');
                 };
-                
+
                 // Also track mousedown in case EA uses that instead of click
-                mousedownListener = function(e) {
+                mousedownListener = function (e) {
                     // Skip clicks on script UI
                     if (e.target.closest('#sbc-auto-ui') || e.target.id === 'sbc-reopen-btn') {
                         return;
                     }
-                    
+
                     const el = e.target;
                     log('💡 Mousedown on: ' + el.tagName + (el.className ? '.' + el.className.split(' ')[0] : ''));
                 };
-                
+
                 // Add listeners with capture=true to catch ALL events
                 // Use multiple phases to ensure we catch EA's events
                 document.body.addEventListener('click', clickListener, true);
@@ -1394,17 +1430,17 @@
                 document.addEventListener('click', clickListener, false);
                 document.addEventListener('mousedown', mousedownListener, true);
                 window.addEventListener('click', clickListener, true);
-                
+
                 // Alternative method: Hover + Keyboard to inspect element
                 let currentHoverElement = null;
-                hoverListener = function(e) {
+                hoverListener = function (e) {
                     if (e.target.closest('#sbc-auto-ui') || e.target.id === 'sbc-reopen-btn') {
                         return;
                     }
                     currentHoverElement = e.target;
                 };
-                
-                keyListener = function(e) {
+
+                keyListener = function (e) {
                     // Press 'i' key to inspect hovered element
                     if (e.key === 'i' || e.key === 'I') {
                         if (currentHoverElement) {
@@ -1417,29 +1453,29 @@
                             log(`Text: ${el.textContent.trim().substring(0, 50)}`);
                             log(`Title: ${el.title || '(no title)'}`);
                             log(`Role: ${el.getAttribute('role') || '(no role)'}`);
-                            
+
                             const dataAttrs = Object.keys(el.dataset);
                             if (dataAttrs.length > 0) {
                                 log(`Data attrs: ${dataAttrs.join(', ')}`);
                             } else {
                                 log('Data attrs: (none)');
                             }
-                            
+
                             if (el.parentElement) {
                                 log(`Parent tag: ${el.parentElement.tagName}`);
                                 log(`Parent class: ${el.parentElement.className || '(no class)'}`);
                             }
-                            
+
                             const inSquad = el.closest('.ut-squad-pitch-view, .ut-squad-builder-container, .ut-sbc-squad-overview');
                             log(`In squad area: ${inSquad ? 'YES ✅' : 'NO ❌'}`);
                             log('═══════════════════════════');
                         }
                     }
                 };
-                
+
                 document.addEventListener('mouseover', hoverListener, true);
                 document.addEventListener('keydown', keyListener, true);
-                
+
                 // Add a test to verify listener works
                 setTimeout(() => {
                     log('✅ Listeners attached successfully');
@@ -1449,7 +1485,7 @@
                     log('2️⃣ حوّم الماوس على الزر واضغط حرف I');
                     log('');
                     log('🧪 TEST: Click the yellow box below');
-                    
+
                     // Add test element
                     const testDiv = document.createElement('div');
                     testDiv.textContent = '🧪 TEST ELEMENT - Click me or hover+I';
@@ -1457,13 +1493,13 @@
                     testDiv.setAttribute('data-test', 'true');
                     document.getElementById('log-container').insertBefore(testDiv, document.getElementById('log-container').firstChild);
                 }, 100);
-                
+
             } else {
                 // Deactivate record mode
                 btn.textContent = '🔍 وضع التسجيل: إيقاف';
                 btn.classList.remove('active');
                 log('⚪ وضع التسجيل متوقف');
-                
+
                 // Remove all listeners
                 if (clickListener) {
                     document.body.removeEventListener('click', clickListener, true);
@@ -1485,7 +1521,7 @@
                     document.removeEventListener('keydown', keyListener, true);
                     keyListener = null;
                 }
-                
+
                 // Remove test element
                 const testElement = document.querySelector('[data-test="true"]');
                 if (testElement) {
