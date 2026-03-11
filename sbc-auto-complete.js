@@ -899,7 +899,7 @@
                 #sbc-auto-ui {
                     position: fixed;
                     top: 10px;
-                    right: 10px;
+                    left: 10px;
                     background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
                     border: 1px solid rgba(59, 130, 246, 0.3);
                     border-radius: 12px;
@@ -1428,7 +1428,7 @@
                 reopenBtn.style.cssText = `
                     position: fixed;
                     top: 20px;
-                    right: 20px;
+                    left: 20px;
                     width: 45px;
                     height: 45px;
                     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -1468,7 +1468,7 @@
                 reopenBtn.style.cssText = `
                     position: fixed;
                     top: 20px;
-                    right: 20px;
+                    left: 20px;
                     width: 50px;
                     height: 50px;
                     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
