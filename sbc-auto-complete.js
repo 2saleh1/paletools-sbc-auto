@@ -614,26 +614,108 @@
 
         await wait(1000);
 
-        // Click through rewards
-        const rewardSelectors = [
-            'button.ut-button',
-            'button:contains("Ok")',
-            'button:contains("Claim")',
-            '.ut-click-shield'
-        ];
-
-        for (let i = 0; i < 5; i++) {
-            for (const selector of rewardSelectors) {
-                await clickElement(selector);
+        // Search for Claim Rewards button (recorded data: BUTTON, class="btn-standard primary", text="Claim Rewards", parent=FOOTER)
+        log('🔍 البحث عن زر Claim Rewards...');
+        
+        let claimButton = null;
+        
+        // Method 1: Search in footer for btn-standard primary
+        const footer = document.querySelector('footer');
+        if (footer) {
+            const buttons = footer.querySelectorAll('button.btn-standard.primary, button.btn-standard');
+            for (const btn of buttons) {
+                if (btn.textContent.includes('Claim Rewards') || btn.textContent.includes('Claim')) {
+                    claimButton = btn;
+                    log('✅ Found Claim Rewards in footer');
+                    break;
+                }
             }
-
-            // Click anywhere on screen to skip animations
-            document.body.click();
-            await wait(500);
         }
-
-        log('✅ تم استلام المكافآت');
-        return true;
+        
+        // Method 2: Search globally for Claim Rewards text
+        if (!claimButton) {
+            claimButton = findElementByText('Claim Rewards', 'button') ||
+                findElementByText('Claim', 'button') ||
+                findElementByText('Ok', 'button') ||
+                findElementByText('OK', 'button');
+            if (claimButton) {
+                log('✅ Found Claim Rewards via text search');
+            }
+        }
+        
+        // Method 3: Try common reward button selectors
+        if (!claimButton) {
+            const selectors = [
+                'button.ut-button',
+                'button.btn-standard.primary',
+                'button[class*="call-to-action"]',
+                '.ut-navigation-button-control'
+            ];
+            
+            for (const selector of selectors) {
+                const btn = document.querySelector(selector);
+                if (btn && (btn.textContent.includes('Claim') || btn.textContent.includes('Ok') || btn.textContent.includes('OK'))) {
+                    claimButton = btn;
+                    log(`✅ Found via selector: ${selector}`);
+                    break;
+                }
+            }
+        }
+        
+        if (claimButton) {
+            log('✅ تم العثور على زر Claim Rewards');
+            
+            // Scroll to button
+            claimButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            await wait(300);
+            
+            // Highlight
+            claimButton.style.outline = '3px solid #fbbf24';
+            await wait(200);
+            claimButton.style.outline = '';
+            
+            // Click using multiple methods
+            log('🖱️ الضغط على زر Claim Rewards...');
+            claimButton.click();
+            await wait(100);
+            claimButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+            await wait(100);
+            claimButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+            await wait(50);
+            claimButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+            
+            await wait(1000);
+            
+            // Try clicking through any additional screens (OK, Continue, etc.)
+            for (let i = 0; i < 3; i++) {
+                await wait(500);
+                
+                const okBtn = findElementByText('Ok', 'button') ||
+                    findElementByText('OK', 'button') ||
+                    findElementByText('Continue', 'button') ||
+                    findElementByText('متابعة', 'button');
+                
+                if (okBtn) {
+                    log('🖱️ الضغط على زر OK/Continue...');
+                    okBtn.click();
+                    okBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                }
+                
+                // Click anywhere on screen to skip animations
+                document.body.click();
+            }
+            
+            log('✅ تم استلام المكافآت');
+            return true;
+        } else {
+            log('⚠️ لم يتم العثور على زر Claim Rewards - قد تكون المكافآت already claimed');
+            // Click body few times to skip any dialogs
+            for (let i = 0; i < 3; i++) {
+                document.body.click();
+                await wait(500);
+            }
+            return true;
+        }
     }
 
     // ========== فتح البكجات ==========
