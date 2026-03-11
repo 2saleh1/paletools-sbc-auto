@@ -367,14 +367,63 @@
 
         await wait(1000); // Wait for page to load
 
-        // Look for Paletools Smart Builder button (case-insensitive)
+        // STEP 1: First, find and click the Paletools icon/button in the squad area
+        log('🔍 البحث عن أيقونة Paletools في Squad...');
+        
+        // Look for Paletools icon in squad builder area (not in bottom tabs!)
+        const squadArea = document.querySelector('.ut-squad-pitch-view, .ut-squad-builder-container, .ut-sbc-squad-overview');
+        let paletoolsIcon = null;
+        
+        if (squadArea) {
+            // Search within squad area specifically
+            paletoolsIcon = squadArea.querySelector('[class*="paletools"], button[class*="paletools"], .paletools-icon, [data-paletools]') ||
+                squadArea.querySelector('button[title*="Paletools" i], button[aria-label*="Paletools" i]') ||
+                Array.from(squadArea.querySelectorAll('button, div[role="button"]')).find(el => 
+                    el.textContent.toLowerCase().includes('paletools') || 
+                    el.className.toLowerCase().includes('paletools')
+                );
+        }
+        
+        // If not found in squad area, search more broadly but exclude bottom tabs
+        if (!paletoolsIcon) {
+            const allElements = Array.from(document.querySelectorAll('button, div[role="button"], [class*="paletools"]'));
+            paletoolsIcon = allElements.find(el => {
+                const text = el.textContent.toLowerCase();
+                const className = el.className.toLowerCase();
+                const isInBottomTabs = el.closest('.ut-tab-bar-item, .view-navbar-tabbar, [class*="bottom-tabs"]');
+                
+                // Must contain "paletools" but NOT be in bottom tabs
+                return (text.includes('paletools') || className.includes('paletools')) && !isInBottomTabs;
+            });
+        }
+        
+        if (paletoolsIcon) {
+            log('✅ تم العثور على أيقونة Paletools');
+            
+            // Scroll to icon
+            paletoolsIcon.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            await wait(500);
+            
+            // Highlight icon
+            paletoolsIcon.style.outline = '3px solid #9333ea';
+            await wait(300);
+            paletoolsIcon.style.outline = '';
+            
+            // Click the icon to open menu
+            paletoolsIcon.click();
+            log('📂 فتح قائمة Paletools...');
+            await wait(1000); // Wait for menu to appear
+        } else {
+            log('⚠️ لم يتم العثور على أيقونة Paletools - البحث مباشرة عن Smart Builder...');
+        }
+
+        // STEP 2: Now look for Smart Builder button in the opened menu
+        log('🔍 البحث عن زر Smart Builder...');
         const button = findElementByText('Smart Builder', 'button') ||
             findElementByText('Smart Build', 'button') ||
             findElementByText('Auto Build', 'button') ||
             findElementByText('Builder', 'button') ||
-            document.querySelector('button[class*="smart"]') ||
-            document.querySelector('button[class*="paletools"]') ||
-            document.querySelector('[data-paletools*="smart"]');
+            document.querySelector('button[class*="smart"]');
 
         if (button) {
             log('✅ تم العثور على زر Smart Builder');
