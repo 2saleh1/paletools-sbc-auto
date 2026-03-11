@@ -367,54 +367,70 @@
 
         await wait(1000); // Wait for page to load
 
-        // STEP 1: First, find and click the Paletools icon/button in the squad area
-        log('🔍 البحث عن أيقونة Paletools في Squad...');
+        // STEP 1: Find and click EA's squad building button (modified by Paletools)
+        // This is EA's original button (Auto Fill, Concept Squad, etc.) that Paletools hijacks
+        log('🔍 البحث عن زر البناء السريع من EA...');
         
-        // Look for Paletools icon in squad builder area (not in bottom tabs!)
         const squadArea = document.querySelector('.ut-squad-pitch-view, .ut-squad-builder-container, .ut-sbc-squad-overview');
-        let paletoolsIcon = null;
+        let eaButton = null;
         
         if (squadArea) {
-            // Search within squad area specifically
-            paletoolsIcon = squadArea.querySelector('[class*="paletools"], button[class*="paletools"], .paletools-icon, [data-paletools]') ||
-                squadArea.querySelector('button[title*="Paletools" i], button[aria-label*="Paletools" i]') ||
-                Array.from(squadArea.querySelectorAll('button, div[role="button"]')).find(el => 
-                    el.textContent.toLowerCase().includes('paletools') || 
-                    el.className.toLowerCase().includes('paletools')
-                );
+            // Search for EA's squad building buttons in the squad area
+            // Look for: Concept Squad button, Auto Fill, Squad Actions, etc.
+            eaButton = squadArea.querySelector('button.ut-squad-action-button, button.ut-squad-slot-action, button[class*="concept"], button[class*="auto-fill"], button[class*="squad-action"]') ||
+                squadArea.querySelector('.ut-squad-hub-actions button, .squad-hub-actions button') ||
+                Array.from(squadArea.querySelectorAll('button, .clickable, [role="button"]')).find(el => {
+                    const text = el.textContent.toLowerCase();
+                    const title = (el.getAttribute('title') || '').toLowerCase();
+                    // Common EA squad building button texts
+                    return text.includes('concept') || 
+                           text.includes('auto') || 
+                           text.includes('fill') ||
+                           text.includes('actions') ||
+                           title.includes('concept') ||
+                           title.includes('auto');
+                });
         }
         
-        // If not found in squad area, search more broadly but exclude bottom tabs
-        if (!paletoolsIcon) {
-            const allElements = Array.from(document.querySelectorAll('button, div[role="button"], [class*="paletools"]'));
-            paletoolsIcon = allElements.find(el => {
-                const text = el.textContent.toLowerCase();
-                const className = el.className.toLowerCase();
-                const isInBottomTabs = el.closest('.ut-tab-bar-item, .view-navbar-tabbar, [class*="bottom-tabs"]');
-                
-                // Must contain "paletools" but NOT be in bottom tabs
-                return (text.includes('paletools') || className.includes('paletools')) && !isInBottomTabs;
+        // If not found, search for any button near the squad that might be the EA button
+        if (!eaButton && squadArea) {
+            log('🔍 البحث عن أزرار Squad الإضافية...');
+            const allButtons = Array.from(squadArea.querySelectorAll('button, .button, .btn, [role="button"]'));
+            
+            // Show first 5 buttons for debugging
+            if (allButtons.length > 0) {
+                log(`📋 Found ${allButtons.length} buttons in squad area`);
+                allButtons.slice(0, 5).forEach((btn, i) => {
+                    log(`  ${i+1}. ${btn.className} - "${btn.textContent.trim().substring(0, 30)}"`);
+                });
+            }
+            
+            // Try to find the button that Paletools modified
+            eaButton = allButtons.find(btn => {
+                const hasSmartBuilder = btn.textContent.toLowerCase().includes('smart builder') || 
+                                       btn.textContent.toLowerCase().includes('smart build');
+                return hasSmartBuilder;
             });
         }
         
-        if (paletoolsIcon) {
-            log('✅ تم العثور على أيقونة Paletools');
+        if (eaButton) {
+            log('✅ تم العثور على زر البناء');
             
-            // Scroll to icon
-            paletoolsIcon.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Scroll to button
+            eaButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
             await wait(500);
             
-            // Highlight icon
-            paletoolsIcon.style.outline = '3px solid #9333ea';
+            // Highlight button
+            eaButton.style.outline = '3px solid #9333ea';
             await wait(300);
-            paletoolsIcon.style.outline = '';
+            eaButton.style.outline = '';
             
-            // Click the icon to open menu
-            paletoolsIcon.click();
-            log('📂 فتح قائمة Paletools...');
+            // Click the button to open menu (Paletools intercepts this)
+            log('🖱️ الضغط على زر البناء...');
+            eaButton.click();
             await wait(1000); // Wait for menu to appear
         } else {
-            log('⚠️ لم يتم العثور على أيقونة Paletools - البحث مباشرة عن Smart Builder...');
+            log('⚠️ لم يتم العثور على زر البناء - البحث مباشرة عن Smart Builder...');
         }
 
         // STEP 2: Now look for Smart Builder button in the opened menu
