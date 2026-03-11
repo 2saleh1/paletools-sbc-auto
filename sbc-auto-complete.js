@@ -284,23 +284,44 @@
 
         const clickTarget = currentSBC.element;
 
-        log(`🖱️ فتح SBC باستخدام mousedown/mouseup...`);
-
-        // Use mousedown/mouseup method (most reliable for EA Web App)
-        clickTarget.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-        await wait(100);
-        clickTarget.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-        await wait(CONFIG.WAIT_TIME);
-
-        // Verify SBC opened by checking for challenges or squad builder
-        await wait(1000);
-        const sbcOpened = document.querySelector('.ut-sbc-challenge-tile, .challenge-tile, .ut-squad-builder-container, .ut-squad-pitch-view');
-
-        if (!sbcOpened) {
-            log('⚠️ لم يتم فتح SBC - محاولة مرة أخرى...');
-            // Fallback: try regular click
+        // Try multiple times with different click methods
+        let sbcOpened = false;
+        const maxAttempts = 5;
+        
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            log(`🖱️ محاولة ${attempt}/${maxAttempts} لفتح SBC...`);
+            
+            // Method 1: mousedown/mouseup
+            clickTarget.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+            await wait(50);
+            clickTarget.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+            await wait(300);
+            
+            // Method 2: Regular click
             clickTarget.click();
+            await wait(300);
+            
+            // Method 3: Click event dispatch
+            clickTarget.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
             await wait(CONFIG.WAIT_TIME);
+            
+            // Check if SBC opened
+            await wait(1000);
+            const check = document.querySelector('.ut-sbc-challenge-tile, .challenge-tile, .ut-squad-builder-container, .ut-squad-pitch-view');
+            
+            if (check) {
+                log(`✅ تم فتح SBC في المحاولة ${attempt}`);
+                sbcOpened = true;
+                break;
+            } else {
+                log(`⚠️ المحاولة ${attempt} فشلت - إعادة المحاولة...`);
+                await wait(500);
+            }
+        }
+        
+        if (!sbcOpened) {
+            log('❌ فشل فتح SBC بعد 5 محاولات');
+            return false;
         }
 
         // Click on first challenge if multiple challenges exist
@@ -320,9 +341,15 @@
                     await wait(300);
                     challenge.style.outline = '';
 
-                    // Use both click methods
+                    // Use multiple click methods
                     challenge.click();
+                    await wait(100);
                     challenge.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                    await wait(100);
+                    challenge.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                    await wait(50);
+                    challenge.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+                    
                     log('✅ تم فتح التحدي');
                     await wait(CONFIG.WAIT_TIME);
                     break;
@@ -402,20 +429,20 @@
 
             // Click using multiple methods (EA might not respond to regular click)
             log('🖱️ الضغط على زر Smart Builder...');
-            
+
             // Method 1: Regular click
             button.click();
             await wait(100);
-            
+
             // Method 2: MouseEvent dispatch (more reliable)
             button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
             await wait(100);
-            
+
             // Method 3: mousedown + mouseup
             button.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
             await wait(50);
             button.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-            
+
             log('⏳ انتظار اكتمال البناء (أقصى 60ث)...');
 
             // Wait for Smart Builder to complete by checking for Submit button
@@ -546,12 +573,12 @@
             // Scroll to Submit button
             submitBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
             await wait(300);
-            
+
             // Highlight
             submitBtn.style.outline = '3px solid #10b981';
             await wait(200);
             submitBtn.style.outline = '';
-            
+
             // Click using multiple methods (EA might not respond to regular click)
             log('🖱️ الضغط على زر Submit...');
             submitBtn.click();
@@ -561,7 +588,7 @@
             submitBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
             await wait(50);
             submitBtn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-            
+
             log('👆 تم الضغط على زر Submit');
             await wait(CONFIG.WAIT_TIME);
 
@@ -616,9 +643,9 @@
 
         // Search for Claim Rewards button (recorded data: BUTTON, class="btn-standard primary", text="Claim Rewards", parent=FOOTER)
         log('🔍 البحث عن زر Claim Rewards...');
-        
+
         let claimButton = null;
-        
+
         // Method 1: Search in footer for btn-standard primary
         const footer = document.querySelector('footer');
         if (footer) {
@@ -631,7 +658,7 @@
                 }
             }
         }
-        
+
         // Method 2: Search globally for Claim Rewards text
         if (!claimButton) {
             claimButton = findElementByText('Claim Rewards', 'button') ||
@@ -642,7 +669,7 @@
                 log('✅ Found Claim Rewards via text search');
             }
         }
-        
+
         // Method 3: Try common reward button selectors
         if (!claimButton) {
             const selectors = [
@@ -651,7 +678,7 @@
                 'button[class*="call-to-action"]',
                 '.ut-navigation-button-control'
             ];
-            
+
             for (const selector of selectors) {
                 const btn = document.querySelector(selector);
                 if (btn && (btn.textContent.includes('Claim') || btn.textContent.includes('Ok') || btn.textContent.includes('OK'))) {
@@ -661,19 +688,19 @@
                 }
             }
         }
-        
+
         if (claimButton) {
             log('✅ تم العثور على زر Claim Rewards');
-            
+
             // Scroll to button
             claimButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
             await wait(300);
-            
+
             // Highlight
             claimButton.style.outline = '3px solid #fbbf24';
             await wait(200);
             claimButton.style.outline = '';
-            
+
             // Click using multiple methods
             log('🖱️ الضغط على زر Claim Rewards...');
             claimButton.click();
@@ -683,28 +710,28 @@
             claimButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
             await wait(50);
             claimButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-            
+
             await wait(1000);
-            
+
             // Try clicking through any additional screens (OK, Continue, etc.)
             for (let i = 0; i < 3; i++) {
                 await wait(500);
-                
+
                 const okBtn = findElementByText('Ok', 'button') ||
                     findElementByText('OK', 'button') ||
                     findElementByText('Continue', 'button') ||
                     findElementByText('متابعة', 'button');
-                
+
                 if (okBtn) {
                     log('🖱️ الضغط على زر OK/Continue...');
                     okBtn.click();
                     okBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
                 }
-                
+
                 // Click anywhere on screen to skip animations
                 document.body.click();
             }
-            
+
             log('✅ تم استلام المكافآت');
             return true;
         } else {
