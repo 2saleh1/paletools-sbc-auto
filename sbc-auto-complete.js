@@ -282,44 +282,25 @@
         await wait(300);
         currentSBC.element.style.outline = '';
 
-        // Try multiple click methods to ensure it works
         const clickTarget = currentSBC.element;
-        
-        log(`🖱️ Clicking SBC tile...`);
-        
-        // Method 1: Regular click
-        clickTarget.click();
-        await wait(500);
-        
-        // Method 2: Dispatch mouse event (more reliable)
-        const clickEvent = new MouseEvent('click', {
-            view: window,
-            bubbles: true,
-            cancelable: true
-        });
-        clickTarget.dispatchEvent(clickEvent);
+
+        log(`🖱️ فتح SBC باستخدام mousedown/mouseup...`);
+
+        // Use mousedown/mouseup method (most reliable for EA Web App)
+        clickTarget.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+        await wait(100);
+        clickTarget.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
         await wait(CONFIG.WAIT_TIME);
 
         // Verify SBC opened by checking for challenges or squad builder
         await wait(1000);
         const sbcOpened = document.querySelector('.ut-sbc-challenge-tile, .challenge-tile, .ut-squad-builder-container, .ut-squad-pitch-view');
-        
+
         if (!sbcOpened) {
             log('⚠️ لم يتم فتح SBC - محاولة مرة أخرى...');
-            // Try clicking again with different method
-            const linkElement = clickTarget.querySelector('a, [role="button"]');
-            if (linkElement) {
-                log('🔄 محاولة الضغط على الرابط الداخلي...');
-                linkElement.click();
-                await wait(CONFIG.WAIT_TIME);
-            } else {
-                // Force navigation if click doesn't work
-                log('🔄 استخدام طريقة بديلة...');
-                clickTarget.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-                await wait(100);
-                clickTarget.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-                await wait(CONFIG.WAIT_TIME);
-            }
+            // Fallback: try regular click
+            clickTarget.click();
+            await wait(CONFIG.WAIT_TIME);
         }
 
         // Click on first challenge if multiple challenges exist
@@ -370,10 +351,10 @@
         // STEP 1: Find and click EA's squad building button (modified by Paletools)
         // This is EA's original button (Auto Fill, Concept Squad, etc.) that Paletools hijacks
         log('🔍 البحث عن زر البناء السريع من EA...');
-        
+
         const squadArea = document.querySelector('.ut-squad-pitch-view, .ut-squad-builder-container, .ut-sbc-squad-overview');
         let eaButton = null;
-        
+
         if (squadArea) {
             // Search for EA's squad building buttons in the squad area
             // Look for: Concept Squad button, Auto Fill, Squad Actions, etc.
@@ -383,48 +364,48 @@
                     const text = el.textContent.toLowerCase();
                     const title = (el.getAttribute('title') || '').toLowerCase();
                     // Common EA squad building button texts
-                    return text.includes('concept') || 
-                           text.includes('auto') || 
-                           text.includes('fill') ||
-                           text.includes('actions') ||
-                           title.includes('concept') ||
-                           title.includes('auto');
+                    return text.includes('concept') ||
+                        text.includes('auto') ||
+                        text.includes('fill') ||
+                        text.includes('actions') ||
+                        title.includes('concept') ||
+                        title.includes('auto');
                 });
         }
-        
+
         // If not found, search for any button near the squad that might be the EA button
         if (!eaButton && squadArea) {
             log('🔍 البحث عن أزرار Squad الإضافية...');
             const allButtons = Array.from(squadArea.querySelectorAll('button, .button, .btn, [role="button"]'));
-            
+
             // Show first 5 buttons for debugging
             if (allButtons.length > 0) {
                 log(`📋 Found ${allButtons.length} buttons in squad area`);
                 allButtons.slice(0, 5).forEach((btn, i) => {
-                    log(`  ${i+1}. ${btn.className} - "${btn.textContent.trim().substring(0, 30)}"`);
+                    log(`  ${i + 1}. ${btn.className} - "${btn.textContent.trim().substring(0, 30)}"`);
                 });
             }
-            
+
             // Try to find the button that Paletools modified
             eaButton = allButtons.find(btn => {
-                const hasSmartBuilder = btn.textContent.toLowerCase().includes('smart builder') || 
-                                       btn.textContent.toLowerCase().includes('smart build');
+                const hasSmartBuilder = btn.textContent.toLowerCase().includes('smart builder') ||
+                    btn.textContent.toLowerCase().includes('smart build');
                 return hasSmartBuilder;
             });
         }
-        
+
         if (eaButton) {
             log('✅ تم العثور على زر البناء');
-            
+
             // Scroll to button
             eaButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
             await wait(500);
-            
+
             // Highlight button
             eaButton.style.outline = '3px solid #9333ea';
             await wait(300);
             eaButton.style.outline = '';
-            
+
             // Click the button to open menu (Paletools intercepts this)
             log('🖱️ الضغط على زر البناء...');
             eaButton.click();
@@ -1076,6 +1057,28 @@
                     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
                 }
                 
+                #sbc-auto-ui .btn-record {
+                    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+                    color: white;
+                    font-size: 10px;
+                }
+                
+                #sbc-auto-ui .btn-record:hover {
+                    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+                }
+                
+                #sbc-auto-ui .btn-record.active {
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    animation: pulse 2s ease-in-out infinite;
+                }
+                
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.7; }
+                }
+                
                 #sbc-auto-ui .btn-minimize {
                     background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
                     color: white;
@@ -1233,6 +1236,7 @@
             </div>
             
             <button class="btn-refresh" id="refresh-btn">🔄 تحميل قائمة SBCs</button>
+            <button class="btn-record" id="record-btn">🔍 وضع التسجيل: إيقاف</button>
             <button class="btn-start" id="start-btn">▶️ بدء التشغيل التلقائي</button>
             <button class="btn-stop" id="stop-btn" style="display:none">⏸️ إيقاف</button>
             <button class="btn-minimize" id="minimize-btn">➖ تصغير</button>
@@ -1341,6 +1345,76 @@
                     alert('فشل النسخ');
                 }
                 document.body.removeChild(textArea);
+            }
+        });
+
+        // Record Mode - Click detector for debugging
+        let recordMode = false;
+        let clickListener = null;
+        
+        document.getElementById('record-btn').addEventListener('click', () => {
+            recordMode = !recordMode;
+            const btn = document.getElementById('record-btn');
+            
+            if (recordMode) {
+                // Activate record mode
+                btn.textContent = '🔴 وضع التسجيل: تشغيل';
+                btn.classList.add('active');
+                log('═══════════════════════════');
+                log('🔴 وضع التسجيل مفعّل');
+                log('اضغط على أي زر لتسجيل معلوماته');
+                log('═══════════════════════════');
+                
+                // Add click listener to document
+                clickListener = function(e) {
+                    const el = e.target;
+                    
+                    // Log element details
+                    log('═══════════════════════════');
+                    log('🎯 Element clicked:');
+                    log(`Tag: ${el.tagName}`);
+                    log(`ID: ${el.id || '(no id)'}`);
+                    log(`Class: ${el.className}`);
+                    log(`Text: ${el.textContent.trim().substring(0, 50)}`);
+                    log(`Title: ${el.title || '(no title)'}`);
+                    log(`Role: ${el.getAttribute('role') || '(no role)'}`);
+                    
+                    // Data attributes
+                    const dataAttrs = Object.keys(el.dataset);
+                    if (dataAttrs.length > 0) {
+                        log(`Data attrs: ${dataAttrs.join(', ')}`);
+                    } else {
+                        log('Data attrs: (none)');
+                    }
+                    
+                    // Parent info
+                    if (el.parentElement) {
+                        log(`Parent tag: ${el.parentElement.tagName}`);
+                        log(`Parent class: ${el.parentElement.className || '(no class)'}`);
+                    }
+                    
+                    // Check if in squad area
+                    const inSquad = el.closest('.ut-squad-pitch-view, .ut-squad-builder-container, .ut-sbc-squad-overview');
+                    log(`In squad area: ${inSquad ? 'YES ✅' : 'NO ❌'}`);
+                    
+                    log('═══════════════════════════');
+                    
+                    // Don't prevent default to allow normal clicking
+                };
+                
+                document.addEventListener('click', clickListener, true);
+                
+            } else {
+                // Deactivate record mode
+                btn.textContent = '🔍 وضع التسجيل: إيقاف';
+                btn.classList.remove('active');
+                log('⚪ وضع التسجيل متوقف');
+                
+                // Remove click listener
+                if (clickListener) {
+                    document.removeEventListener('click', clickListener, true);
+                    clickListener = null;
+                }
             }
         });
 
