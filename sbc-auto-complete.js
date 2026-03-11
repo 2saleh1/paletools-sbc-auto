@@ -346,81 +346,47 @@
     async function usePaletoolsSmartBuild() {
         log('🤖 استخدام Smart Builder من Paletools...');
 
-        await wait(1000); // Wait for page to load
+        await wait(1500); // Wait for Paletools to inject the button
 
-        // STEP 1: Find and click EA's squad building button (modified by Paletools)
-        // This is EA's original button (Auto Fill, Concept Squad, etc.) that Paletools hijacks
-        log('🔍 البحث عن زر البناء السريع من EA...');
-
-        const squadArea = document.querySelector('.ut-squad-pitch-view, .ut-squad-builder-container, .ut-sbc-squad-overview');
-        let eaButton = null;
-
-        if (squadArea) {
-            // Search for EA's squad building buttons in the squad area
-            // Look for: Concept Squad button, Auto Fill, Squad Actions, etc.
-            eaButton = squadArea.querySelector('button.ut-squad-action-button, button.ut-squad-slot-action, button[class*="concept"], button[class*="auto-fill"], button[class*="squad-action"]') ||
-                squadArea.querySelector('.ut-squad-hub-actions button, .squad-hub-actions button') ||
-                Array.from(squadArea.querySelectorAll('button, .clickable, [role="button"]')).find(el => {
-                    const text = el.textContent.toLowerCase();
-                    const title = (el.getAttribute('title') || '').toLowerCase();
-                    // Common EA squad building button texts
-                    return text.includes('concept') ||
-                        text.includes('auto') ||
-                        text.includes('fill') ||
-                        text.includes('actions') ||
-                        title.includes('concept') ||
-                        title.includes('auto');
-                });
-        }
-
-        // If not found, search for any button near the squad that might be the EA button
-        if (!eaButton && squadArea) {
-            log('🔍 البحث عن أزرار Squad الإضافية...');
-            const allButtons = Array.from(squadArea.querySelectorAll('button, .button, .btn, [role="button"]'));
-
-            // Show first 5 buttons for debugging
-            if (allButtons.length > 0) {
-                log(`📋 Found ${allButtons.length} buttons in squad area`);
-                allButtons.slice(0, 5).forEach((btn, i) => {
-                    log(`  ${i + 1}. ${btn.className} - "${btn.textContent.trim().substring(0, 30)}"`);
-                });
-            }
-
-            // Try to find the button that Paletools modified
-            eaButton = allButtons.find(btn => {
-                const hasSmartBuilder = btn.textContent.toLowerCase().includes('smart builder') ||
-                    btn.textContent.toLowerCase().includes('smart build');
-                return hasSmartBuilder;
-            });
-        }
-
-        if (eaButton) {
-            log('✅ تم العثور على زر البناء');
-
-            // Scroll to button
-            eaButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            await wait(500);
-
-            // Highlight button
-            eaButton.style.outline = '3px solid #9333ea';
-            await wait(300);
-            eaButton.style.outline = '';
-
-            // Click the button to open menu (Paletools intercepts this)
-            log('🖱️ الضغط على زر البناء...');
-            eaButton.click();
-            await wait(1000); // Wait for menu to appear
-        } else {
-            log('⚠️ لم يتم العثور على زر البناء - البحث مباشرة عن Smart Builder...');
-        }
-
-        // STEP 2: Now look for Smart Builder button in the opened menu
+        // Search for Smart Builder button directly
+        // Button details (from recording): BUTTON, class="btn-standard primary", text="Smart Builder", parent="smart-builder-container"
         log('🔍 البحث عن زر Smart Builder...');
-        const button = findElementByText('Smart Builder', 'button') ||
-            findElementByText('Smart Build', 'button') ||
-            findElementByText('Auto Build', 'button') ||
-            findElementByText('Builder', 'button') ||
-            document.querySelector('button[class*="smart"]');
+        
+        let button = null;
+        
+        // Method 1: Search by exact class and text (most reliable)
+        const buttons = document.querySelectorAll('button.btn-standard.primary, button.btn-standard');
+        for (const btn of buttons) {
+            const text = btn.textContent.trim();
+            if (text === 'Smart Builder' || text.includes('Smart Builder')) {
+                button = btn;
+                log('✅ Found Smart Builder via class "btn-standard primary"');
+                break;
+            }
+        }
+        
+        // Method 2: Search within smart-builder-container
+        if (!button) {
+            const container = document.querySelector('.smart-builder-container');
+            if (container) {
+                button = container.querySelector('button');
+                if (button && button.textContent.includes('Smart Builder')) {
+                    log('✅ Found Smart Builder via parent ".smart-builder-container"');
+                } else {
+                    button = null;
+                }
+            }
+        }
+        
+        // Method 3: Search by text content (fallback)
+        if (!button) {
+            button = findElementByText('Smart Builder', 'button') ||
+                findElementByText('Smart Build', 'button') ||
+                document.querySelector('button[class*="smart"]');
+            if (button) {
+                log('✅ Found Smart Builder via text search');
+            }
+        }
 
         if (button) {
             log('✅ تم العثور على زر Smart Builder');
