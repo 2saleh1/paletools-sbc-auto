@@ -1352,6 +1352,8 @@
         let recordMode = false;
         let clickListener = null;
         let mousedownListener = null;
+        let hoverListener = null;
+        let keyListener = null;
         
         document.getElementById('record-btn').addEventListener('click', () => {
             recordMode = !recordMode;
@@ -1370,7 +1372,7 @@
                 // Add click listener to capture ALL clicks (including EA Web App)
                 clickListener = function(e) {
                     // Skip clicks on script UI to avoid spam
-                    if (e.target.closest('#sbc-auto-ui')) {
+                    if (e.target.closest('#sbc-auto-ui') || e.target.id === 'sbc-reopen-btn') {
                         return;
                     }
                     
@@ -1405,30 +1407,89 @@
                     log(`In squad area: ${inSquad ? 'YES ✅' : 'NO ❌'}`);
                     
                     log('═══════════════════════════');
-                    
-                    // Don't prevent default to allow normal clicking
                 };
                 
                 // Also track mousedown in case EA uses that instead of click
                 mousedownListener = function(e) {
                     // Skip clicks on script UI
-                    if (e.target.closest('#sbc-auto-ui')) {
+                    if (e.target.closest('#sbc-auto-ui') || e.target.id === 'sbc-reopen-btn') {
                         return;
                     }
                     
                     const el = e.target;
-                    log('💡 Mousedown detected (EA might use this)');
+                    log('💡 Mousedown on: ' + el.tagName + (el.className ? '.' + el.className.split(' ')[0] : ''));
                 };
                 
                 // Add listeners with capture=true to catch ALL events
+                // Use multiple phases to ensure we catch EA's events
+                document.body.addEventListener('click', clickListener, true);
+                document.body.addEventListener('click', clickListener, false);
                 document.addEventListener('click', clickListener, true);
+                document.addEventListener('click', clickListener, false);
                 document.addEventListener('mousedown', mousedownListener, true);
                 window.addEventListener('click', clickListener, true);
                 
-                // Log test to confirm listener is attached
+                // Alternative method: Hover + Keyboard to inspect element
+                let currentHoverElement = null;
+                hoverListener = function(e) {
+                    if (e.target.closest('#sbc-auto-ui') || e.target.id === 'sbc-reopen-btn') {
+                        return;
+                    }
+                    currentHoverElement = e.target;
+                };
+                
+                keyListener = function(e) {
+                    // Press 'i' key to inspect hovered element
+                    if (e.key === 'i' || e.key === 'I') {
+                        if (currentHoverElement) {
+                            const el = currentHoverElement;
+                            log('═══════════════════════════');
+                            log('🔍 Element inspected (via hover+I):');
+                            log(`Tag: ${el.tagName}`);
+                            log(`ID: ${el.id || '(no id)'}`);
+                            log(`Class: ${el.className}`);
+                            log(`Text: ${el.textContent.trim().substring(0, 50)}`);
+                            log(`Title: ${el.title || '(no title)'}`);
+                            log(`Role: ${el.getAttribute('role') || '(no role)'}`);
+                            
+                            const dataAttrs = Object.keys(el.dataset);
+                            if (dataAttrs.length > 0) {
+                                log(`Data attrs: ${dataAttrs.join(', ')}`);
+                            } else {
+                                log('Data attrs: (none)');
+                            }
+                            
+                            if (el.parentElement) {
+                                log(`Parent tag: ${el.parentElement.tagName}`);
+                                log(`Parent class: ${el.parentElement.className || '(no class)'}`);
+                            }
+                            
+                            const inSquad = el.closest('.ut-squad-pitch-view, .ut-squad-builder-container, .ut-sbc-squad-overview');
+                            log(`In squad area: ${inSquad ? 'YES ✅' : 'NO ❌'}`);
+                            log('═══════════════════════════');
+                        }
+                    }
+                };
+                
+                document.addEventListener('mouseover', hoverListener, true);
+                document.addEventListener('keydown', keyListener, true);
+                
+                // Add a test to verify listener works
                 setTimeout(() => {
                     log('✅ Listeners attached successfully');
-                    log('💡 Try clicking any EA Web App button now');
+                    log('');
+                    log('📋 طريقتان للتسجيل:');
+                    log('1️⃣ اضغط مباشرة على الزر');
+                    log('2️⃣ حوّم الماوس على الزر واضغط حرف I');
+                    log('');
+                    log('🧪 TEST: Click the yellow box below');
+                    
+                    // Add test element
+                    const testDiv = document.createElement('div');
+                    testDiv.textContent = '🧪 TEST ELEMENT - Click me or hover+I';
+                    testDiv.style.cssText = 'background: #fbbf24; color: #000; padding: 8px; margin: 5px 0; cursor: pointer; border-radius: 4px; font-weight: bold;';
+                    testDiv.setAttribute('data-test', 'true');
+                    document.getElementById('log-container').insertBefore(testDiv, document.getElementById('log-container').firstChild);
                 }, 100);
                 
             } else {
@@ -1437,15 +1498,32 @@
                 btn.classList.remove('active');
                 log('⚪ وضع التسجيل متوقف');
                 
-                // Remove click listeners
+                // Remove all listeners
                 if (clickListener) {
+                    document.body.removeEventListener('click', clickListener, true);
+                    document.body.removeEventListener('click', clickListener, false);
                     document.removeEventListener('click', clickListener, true);
+                    document.removeEventListener('click', clickListener, false);
                     window.removeEventListener('click', clickListener, true);
                     clickListener = null;
                 }
                 if (mousedownListener) {
                     document.removeEventListener('mousedown', mousedownListener, true);
                     mousedownListener = null;
+                }
+                if (hoverListener) {
+                    document.removeEventListener('mouseover', hoverListener, true);
+                    hoverListener = null;
+                }
+                if (keyListener) {
+                    document.removeEventListener('keydown', keyListener, true);
+                    keyListener = null;
+                }
+                
+                // Remove test element
+                const testElement = document.querySelector('[data-test="true"]');
+                if (testElement) {
+                    testElement.remove();
                 }
             }
         });
