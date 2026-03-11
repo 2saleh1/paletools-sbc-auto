@@ -1351,6 +1351,7 @@
         // Record Mode - Click detector for debugging
         let recordMode = false;
         let clickListener = null;
+        let mousedownListener = null;
         
         document.getElementById('record-btn').addEventListener('click', () => {
             recordMode = !recordMode;
@@ -1362,11 +1363,17 @@
                 btn.classList.add('active');
                 log('═══════════════════════════');
                 log('🔴 وضع التسجيل مفعّل');
-                log('اضغط على أي زر لتسجيل معلوماته');
+                log('اضغط على أي عنصر في الصفحة');
+                log('✅ Listener activated on entire page');
                 log('═══════════════════════════');
                 
-                // Add click listener to document
+                // Add click listener to capture ALL clicks (including EA Web App)
                 clickListener = function(e) {
+                    // Skip clicks on script UI to avoid spam
+                    if (e.target.closest('#sbc-auto-ui')) {
+                        return;
+                    }
+                    
                     const el = e.target;
                     
                     // Log element details
@@ -1402,7 +1409,27 @@
                     // Don't prevent default to allow normal clicking
                 };
                 
+                // Also track mousedown in case EA uses that instead of click
+                mousedownListener = function(e) {
+                    // Skip clicks on script UI
+                    if (e.target.closest('#sbc-auto-ui')) {
+                        return;
+                    }
+                    
+                    const el = e.target;
+                    log('💡 Mousedown detected (EA might use this)');
+                };
+                
+                // Add listeners with capture=true to catch ALL events
                 document.addEventListener('click', clickListener, true);
+                document.addEventListener('mousedown', mousedownListener, true);
+                window.addEventListener('click', clickListener, true);
+                
+                // Log test to confirm listener is attached
+                setTimeout(() => {
+                    log('✅ Listeners attached successfully');
+                    log('💡 Try clicking any EA Web App button now');
+                }, 100);
                 
             } else {
                 // Deactivate record mode
@@ -1410,10 +1437,15 @@
                 btn.classList.remove('active');
                 log('⚪ وضع التسجيل متوقف');
                 
-                // Remove click listener
+                // Remove click listeners
                 if (clickListener) {
                     document.removeEventListener('click', clickListener, true);
+                    window.removeEventListener('click', clickListener, true);
                     clickListener = null;
+                }
+                if (mousedownListener) {
+                    document.removeEventListener('mousedown', mousedownListener, true);
+                    mousedownListener = null;
                 }
             }
         });
