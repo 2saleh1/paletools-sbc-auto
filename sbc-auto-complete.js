@@ -524,9 +524,17 @@
 
                             // iOS: Click back button to return to main SBC view before Submit
                             log('🔍 البحث عن زر الرجوع (iOS)...');
-                            const backButton = document.querySelector('button.ut-navigation-button-control');
+                            
+                            // Search for back button more broadly
+                            const backButton = document.querySelector('.ut-navigation-button-control') ||
+                                document.querySelector('button.ut-navigation-button-control') ||
+                                document.querySelector('[class*="navigation-button"]');
+                            
                             if (backButton) {
                                 log('✅ تم العثور على زر الرجوع');
+                                log(`   - Tag: ${backButton.tagName}`);
+                                log(`   - Class: ${backButton.className}`);
+                                
                                 backButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                 await wait(200);
                                 
@@ -546,8 +554,22 @@
                                 backButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
                                 
                                 log('⏳ انتظار عودة الصفحة...');
-                                await wait(300); // Quick check
-                                log('✅ تم الرجوع إلى عرض SBC الرئيسي');
+                                
+                                // Poll for Submit button appearance (instead of fixed wait)
+                                let submitAppeared = false;
+                                for (let i = 0; i < 20; i++) { // 20 * 150ms = 3 seconds max
+                                    await wait(150);
+                                    const testSubmit = document.querySelector('button.btn-standard.call-to-action, button.call-to-action');
+                                    if (testSubmit && testSubmit.offsetParent !== null) {
+                                        submitAppeared = true;
+                                        log('✅ تم الرجوع إلى عرض SBC الرئيسي - ظهر زر Submit');
+                                        break;
+                                    }
+                                }
+                                
+                                if (!submitAppeared) {
+                                    log('⚠️ لم يظهر زر Submit بعد - المتابعة على أي حال...');
+                                }
                             } else {
                                 log('⚠️ لم يتم العثور على زر الرجوع - قد يكون PC/Web');
                             }
