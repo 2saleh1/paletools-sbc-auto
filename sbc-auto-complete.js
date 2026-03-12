@@ -825,6 +825,37 @@
         }
         
         if (rewardPack) {
+            // ========== قراءة اسم البكج وتسجيله ==========
+            let packName = 'Unknown Pack';
+            
+            // Try to find pack name from various elements
+            const nameElements = [
+                rewardPack.querySelector('.ut-pack-name'),
+                rewardPack.querySelector('.packName'),
+                rewardPack.querySelector('h2'),
+                rewardPack.querySelector('.title'),
+                rewardPack.querySelector('[class*="name"]'),
+                rewardPack.querySelector('[class*="title"]')
+            ];
+            
+            for (const elem of nameElements) {
+                if (elem && elem.textContent.trim()) {
+                    packName = elem.textContent.trim();
+                    break;
+                }
+            }
+            
+            // If no specific element found, try pack element text
+            if (packName === 'Unknown Pack' && rewardPack.textContent) {
+                const text = rewardPack.textContent.trim();
+                if (text && text.length < 100) { // Reasonable pack name length
+                    packName = text;
+                }
+            }
+            
+            // Log pack info with SBC name
+            log(`📦 جائزة SBC "${currentSBC?.name || 'Unknown'}": ${packName}`);
+            
             log('🎁 الضغط على جائزة البكج...');
             
             // Scroll to pack
