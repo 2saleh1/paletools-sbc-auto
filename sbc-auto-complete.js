@@ -17,8 +17,8 @@
         // إيقاف تلقائي عند امتلاء SBC Storage
         STOP_ON_SBC_STORAGE_FULL: true,
 
-        // عدد البكجات المراد فتحها بعد كل SBC (-1 = كل البكجات المتاحة)
-        PACKS_PER_SBC: 1
+        // عدد البكجات المراد فتحها بعد كل SBC (0 = لا تفتح البكجات، -1 = كل البكجات المتاحة)
+        PACKS_PER_SBC: 0  // Changed to 0 - User wants to save packs
     };
 
     // ========== المتغيرات ==========
@@ -589,27 +589,27 @@
                             log('🖱️ الضغط على زر الرجوع (محاولة 1)...');
                             backButton.click();
                             await wait(100);
-                            
+
                             log('🖱️ الضغط على زر الرجوع (محاولة 2)...');
                             backButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
                             await wait(100);
-                            
+
                             log('🖱️ الضغط على زر الرجوع (محاولة 3)...');
                             backButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
                             await wait(50);
                             backButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
                             await wait(100);
-                            
+
                             log('🖱️ الضغط على زر الرجوع (محاولة 4)...');
                             backButton.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, cancelable: true }));
                             await wait(50);
                             backButton.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, cancelable: true }));
-                            
+
                             // Restore z-index
                             backButton.style.zIndex = originalZIndex;
 
                             log('⏳ انتظار ظهور زر Submit بعد الرجوع...');
-                            
+
                             // Restore script UI
                             if (scriptUI) {
                                 scriptUI.style.display = '';
@@ -798,9 +798,85 @@
         log('🎁 استلام المكافآت...');
 
         log('⏳ انتظار ظهور شاشة المكافآت...');
-        await wait(500);
+        await wait(800);
 
-        // Search for Claim Rewards button (recorded data: BUTTON, class="btn-standard primary", text="Claim Rewards", parent=FOOTER)
+        // FIRST: Look for reward pack/item to click (SBC rewards appear as packs)
+        log('🔍 البحث عن جائزة البكج...');
+        
+        const packSelectors = [
+            '.ut-pack-tile',
+            '.ut-tile-pack',
+            '.pack-item',
+            '.ut-reward-item',
+            '[class*="pack"]',
+            '[class*="reward"]',
+            '.ut-store-pack-details-view',
+            '.ut-item-view'
+        ];
+        
+        let rewardPack = null;
+        for (const selector of packSelectors) {
+            const pack = document.querySelector(selector);
+            if (pack && pack.offsetParent !== null) {
+                rewardPack = pack;
+                log(`✅ تم العثور على جائزة البكج: ${selector}`);
+                break;
+            }
+        }
+        
+        if (rewardPack) {
+            log('🎁 الضغط على جائزة البكج...');
+            
+            // Scroll to pack
+            rewardPack.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            await wait(200);
+            
+            // Highlight pack
+            rewardPack.style.outline = '3px solid #fbbf24';
+            await wait(150);
+            rewardPack.style.outline = '';
+            
+            // Click pack using multiple methods
+            rewardPack.click();
+            await wait(50);
+            rewardPack.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+            await wait(50);
+            rewardPack.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+            await wait(30);
+            rewardPack.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+            
+            log('✅ تم الضغط على البكج');
+            await wait(1000); // Wait for pack to open
+            
+            // Skip pack opening animation (click anywhere or press space)
+            log('⏩ تخطي أنيميشن البكج...');
+            document.body.click();
+            await wait(100);
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+            await wait(500);
+            
+            // Click through any OK/Continue buttons after pack
+            for (let i = 0; i < 3; i++) {
+                await wait(300);
+                const okBtn = findElementByText('Ok', 'button') ||
+                    findElementByText('OK', 'button') ||
+                    findElementByText('Continue', 'button') ||
+                    findElementByText('متابعة', 'button');
+                
+                if (okBtn) {
+                    log('🖱️ الضغط على زر OK/Continue...');
+                    okBtn.click();
+                    await wait(50);
+                    okBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                }
+                document.body.click();
+            }
+            
+            log('✅ تم استلام المكافآت');
+            return true;
+        }
+
+        // SECOND: If no pack found, search for Claim Rewards button
         log('🔍 البحث عن زر Claim Rewards...');
 
         let claimButton = null;
