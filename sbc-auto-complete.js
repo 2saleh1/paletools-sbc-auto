@@ -287,28 +287,28 @@
         // Try multiple times with different click methods
         let sbcOpened = false;
         const maxAttempts = 5;
-        
+
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
             log(`🖱️ محاولة ${attempt}/${maxAttempts} لفتح SBC...`);
-            
+
             // Method 1: mousedown/mouseup
             clickTarget.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
             await wait(50);
             clickTarget.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
             await wait(300);
-            
+
             // Method 2: Regular click
             clickTarget.click();
             await wait(300);
-            
+
             // Method 3: Click event dispatch
             clickTarget.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
             await wait(CONFIG.WAIT_TIME);
-            
+
             // Check if SBC opened
             await wait(1000);
             const check = document.querySelector('.ut-sbc-challenge-tile, .challenge-tile, .ut-squad-builder-container, .ut-squad-pitch-view');
-            
+
             if (check) {
                 log(`✅ تم فتح SBC في المحاولة ${attempt}`);
                 sbcOpened = true;
@@ -318,7 +318,7 @@
                 await wait(500);
             }
         }
-        
+
         if (!sbcOpened) {
             log('❌ فشل فتح SBC بعد 5 محاولات');
             return false;
@@ -349,7 +349,7 @@
                     challenge.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
                     await wait(50);
                     challenge.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-                    
+
                     log('✅ تم فتح التحدي');
                     await wait(CONFIG.WAIT_TIME);
                     break;
@@ -375,7 +375,39 @@
 
         await wait(1500); // Wait for Paletools to inject the button
 
-        // Search for Smart Builder button directly
+        // FIRST: Click squad-edit-icon button to open squad options menu
+        log('🔍 البحث عن زر قائمة خيارات التشكيلة...');
+        const squadEditButton = document.querySelector('button.flat.squad-edit-icon');
+        
+        if (squadEditButton) {
+            log('✅ تم العثور على زر قائمة التشكيلة');
+            
+            // Scroll to button
+            squadEditButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            await wait(300);
+            
+            // Highlight button
+            squadEditButton.style.outline = '3px solid #3b82f6';
+            await wait(200);
+            squadEditButton.style.outline = '';
+            
+            // Click using multiple methods
+            log('🖱️ فتح قائمة خيارات التشكيلة...');
+            squadEditButton.click();
+            await wait(100);
+            squadEditButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+            await wait(100);
+            squadEditButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+            await wait(50);
+            squadEditButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+            
+            await wait(1000); // Wait for menu to open and Paletools to inject Smart Builder
+            log('✅ تم فتح قائمة الخيارات');
+        } else {
+            log('⚠️ لم يتم العثور على زر قائمة التشكيلة - قد تكون القائمة مفتوحة بالفعل');
+        }
+
+        // THEN: Search for Smart Builder button
         // Button details (from recording): BUTTON, class="btn-standard primary", text="Smart Builder", parent="smart-builder-container"
         log('🔍 البحث عن زر Smart Builder...');
 
