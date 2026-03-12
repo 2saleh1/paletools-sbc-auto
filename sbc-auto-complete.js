@@ -6,9 +6,9 @@
 
     // ========== الإعدادات ==========
     const CONFIG = {
-        // وقت الانتظار بين العمليات
-        WAIT_TIME: 2000,
-        CLICK_DELAY: 500,
+        // وقت الانتظار بين العمليات (تم تقليله للسرعة)
+        WAIT_TIME: 800,
+        CLICK_DELAY: 150,
 
         // إدارة اللاعبين المكررين
         GOLD_DUPLICATES_TO_SBC_STORAGE: true,  // الذهبيين المكررين → SBC Storage
@@ -279,7 +279,7 @@
 
         // Highlight the element briefly
         currentSBC.element.style.outline = '3px solid #3b82f6';
-        await wait(300);
+        await wait(200);
         currentSBC.element.style.outline = '';
 
         const clickTarget = currentSBC.element;
@@ -293,30 +293,39 @@
 
             // Method 1: mousedown/mouseup
             clickTarget.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-            await wait(50);
+            await wait(30);
             clickTarget.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-            await wait(300);
+            await wait(100);
 
             // Method 2: Regular click
             clickTarget.click();
-            await wait(300);
+            await wait(100);
 
             // Method 3: Click event dispatch
             clickTarget.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-            await wait(CONFIG.WAIT_TIME);
+            await wait(200);
 
-            // Check if SBC opened
-            await wait(1000);
-            const check = document.querySelector('.ut-sbc-challenge-tile, .challenge-tile, .ut-squad-builder-container, .ut-squad-pitch-view');
-
-            if (check) {
-                log(`✅ تم فتح SBC في المحاولة ${attempt}`);
-                sbcOpened = true;
-                break;
-            } else {
-                log(`⚠️ المحاولة ${attempt} فشلت - إعادة المحاولة...`);
-                await wait(500);
+            // Poll for SBC opening (check every 200ms, max 3 seconds)
+            log('⏳ التحقق من فتح SBC...');
+            let pollAttempts = 0;
+            const maxPollAttempts = 15; // 15 * 200ms = 3 seconds
+            
+            while (pollAttempts < maxPollAttempts) {
+                await wait(200);
+                const check = document.querySelector('.ut-sbc-challenge-tile, .challenge-tile, .ut-squad-builder-container, .ut-squad-pitch-view');
+                
+                if (check) {
+                    log(`✅ تم فتح SBC في المحاولة ${attempt}`);
+                    sbcOpened = true;
+                    break;
+                }
+                pollAttempts++;
             }
+
+            if (sbcOpened) break;
+            
+            log(`⚠️ المحاولة ${attempt} فشلت - إعادة المحاولة...`);
+            await wait(300);
         }
 
         if (!sbcOpened) {
@@ -334,31 +343,32 @@
                 if (!isComplete) {
                     // Scroll to challenge
                     challenge.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    await wait(500);
+                    await wait(200);
 
                     // Highlight
                     challenge.style.outline = '3px solid #10b981';
-                    await wait(300);
+                    await wait(150);
                     challenge.style.outline = '';
 
                     // Use multiple click methods
                     challenge.click();
-                    await wait(100);
-                    challenge.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-                    await wait(100);
-                    challenge.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
                     await wait(50);
+                    challenge.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                    await wait(50);
+                    challenge.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                    await wait(30);
                     challenge.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
 
                     log('✅ تم فتح التحدي');
-                    await wait(CONFIG.WAIT_TIME);
+                    log('⏳ انتظار تحميل واجهة التحدي...');
+                    await wait(300);
                     break;
                 }
             }
         }
 
         // Final verification
-        await wait(500);
+        await wait(200);
         const finalCheck = document.querySelector('.ut-squad-builder-container, .ut-squad-pitch-view, .ut-sbc-squad-overview');
         if (finalCheck) {
             log('✅ تم فتح SBC بنجاح');
@@ -378,30 +388,31 @@
         // FIRST: Click squad-edit-icon button to open squad options menu
         log('🔍 البحث عن زر قائمة خيارات التشكيلة...');
         const squadEditButton = document.querySelector('button.flat.squad-edit-icon');
-        
+
         if (squadEditButton) {
             log('✅ تم العثور على زر قائمة التشكيلة');
-            
+
             // Scroll to button
             squadEditButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            await wait(300);
+            await wait(200);
             
             // Highlight button
             squadEditButton.style.outline = '3px solid #3b82f6';
-            await wait(200);
+            await wait(150);
             squadEditButton.style.outline = '';
             
             // Click using multiple methods
             log('🖱️ فتح قائمة خيارات التشكيلة...');
             squadEditButton.click();
-            await wait(100);
-            squadEditButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-            await wait(100);
-            squadEditButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
             await wait(50);
+            squadEditButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+            await wait(50);
+            squadEditButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+            await wait(30);
             squadEditButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-            
-            await wait(1000); // Wait for menu to open and Paletools to inject Smart Builder
+
+            log('⏳ انتظار ظهور قائمة الخيارات...');
+            await wait(300); // Small delay for animation
             log('✅ تم فتح قائمة الخيارات');
         } else {
             log('⚠️ لم يتم العثور على زر قائمة التشكيلة - قد تكون القائمة مفتوحة بالفعل');
@@ -452,11 +463,11 @@
 
             // Scroll to button
             button.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            await wait(500);
+            await wait(200);
 
             // Highlight button
             button.style.outline = '3px solid #f59e0b';
-            await wait(300);
+            await wait(150);
             button.style.outline = '';
 
             // Click using multiple methods (EA might not respond to regular click)
@@ -464,18 +475,18 @@
 
             // Method 1: Regular click
             button.click();
-            await wait(100);
+            await wait(50);
 
             // Method 2: MouseEvent dispatch (more reliable)
             button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-            await wait(100);
+            await wait(50);
 
             // Method 3: mousedown + mouseup
             button.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-            await wait(50);
+            await wait(30);
             button.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
 
-            log('⏳ انتظار اكتمال البناء (أقصى 60ث)...');
+            log('⏳ انتظار اكتمال البناء (مراقبة مستمرة حتى 60ث)...');
 
             // Wait for Smart Builder to complete by checking for Submit button
             // Check every 500ms (faster detection) for up to 60 seconds
@@ -511,9 +522,39 @@
                             const totalSeconds = Math.round(checksCount * 0.5);
                             log(`✅ تم اكتمال Smart Builder بعد ${totalSeconds} ثانية`);
 
-                            // Scroll to Submit button
+                            // iOS: Click back button to return to main SBC view before Submit
+                            log('🔍 البحث عن زر الرجوع (iOS)...');
+                            const backButton = document.querySelector('button.ut-navigation-button-control');
+                            if (backButton) {
+                                log('✅ تم العثور على زر الرجوع');
+                                backButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                await wait(200);
+                                
+                                // Highlight
+                                backButton.style.outline = '3px solid #3b82f6';
+                                await wait(150);
+                                backButton.style.outline = '';
+                                
+                                // Click using multiple methods
+                                log('🖱️ الضغط على زر الرجوع...');
+                                backButton.click();
+                                await wait(50);
+                                backButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                                await wait(50);
+                                backButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                                await wait(30);
+                                backButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+                                
+                                log('⏳ انتظار عودة الصفحة...');
+                                await wait(300); // Quick check
+                                log('✅ تم الرجوع إلى عرض SBC الرئيسي');
+                            } else {
+                                log('⚠️ لم يتم العثور على زر الرجوع - قد يكون PC/Web');
+                            }
+
+                            // Now scroll to Submit button
                             submitBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            await wait(300);
+                            await wait(200);
 
                             break;
                         }
@@ -558,7 +599,7 @@
         log('📤 إرسال SBC...');
 
         // Wait a moment for UI to be ready
-        await wait(1500);
+        await wait(800);
 
         // Try to find Submit button with multiple strategies
         log('🔍 البحث عن زر Submit...');
@@ -604,28 +645,28 @@
         if (submitBtn && submitBtn.offsetParent !== null) {
             // Scroll to Submit button
             submitBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            await wait(300);
+            await wait(200);
 
             // Highlight
             submitBtn.style.outline = '3px solid #10b981';
-            await wait(200);
+            await wait(150);
             submitBtn.style.outline = '';
 
             // Click using multiple methods (EA might not respond to regular click)
             log('🖱️ الضغط على زر Submit...');
             submitBtn.click();
-            await wait(100);
-            submitBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-            await wait(100);
-            submitBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
             await wait(50);
+            submitBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+            await wait(50);
+            submitBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+            await wait(30);
             submitBtn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
 
             log('👆 تم الضغط على زر Submit');
-            await wait(CONFIG.WAIT_TIME);
+            log('⏳ انتظار ظهور شاشة التأكيد...');
+            await wait(300); // Quick check for confirm button
 
             // Confirm if needed
-            await wait(500);
             const confirmButton = findElementByText('Confirm', 'button') ||
                 findElementByText('Yes', 'button') ||
                 findElementByText('تأكيد', 'button') ||
@@ -637,7 +678,12 @@
                 confirmButton.click();
                 await wait(50);
                 confirmButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-                await wait(CONFIG.WAIT_TIME);
+                await wait(30);
+                confirmButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                await wait(30);
+                confirmButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+                log('⏳ انتظار معالجة الطلب...');
+                await wait(500); // Wait for server response
             }
 
             log('✅ تم تقديم SBC بنجاح');
@@ -671,7 +717,8 @@
     async function claimRewards() {
         log('🎁 استلام المكافآت...');
 
-        await wait(1000);
+        log('⏳ انتظار ظهور شاشة المكافآت...');
+        await wait(500);
 
         // Search for Claim Rewards button (recorded data: BUTTON, class="btn-standard primary", text="Claim Rewards", parent=FOOTER)
         log('🔍 البحث عن زر Claim Rewards...');
@@ -726,28 +773,29 @@
 
             // Scroll to button
             claimButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            await wait(300);
+            await wait(200);
 
             // Highlight
             claimButton.style.outline = '3px solid #fbbf24';
-            await wait(200);
+            await wait(150);
             claimButton.style.outline = '';
 
             // Click using multiple methods
             log('🖱️ الضغط على زر Claim Rewards...');
             claimButton.click();
-            await wait(100);
-            claimButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-            await wait(100);
-            claimButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
             await wait(50);
+            claimButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+            await wait(50);
+            claimButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+            await wait(30);
             claimButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
 
-            await wait(1000);
+            log('⏳ انتظار معالجة المكافآت...');
+            await wait(500);
 
             // Try clicking through any additional screens (OK, Continue, etc.)
             for (let i = 0; i < 3; i++) {
-                await wait(500);
+                await wait(300);
 
                 const okBtn = findElementByText('Ok', 'button') ||
                     findElementByText('OK', 'button') ||
@@ -757,6 +805,7 @@
                 if (okBtn) {
                     log('🖱️ الضغط على زر OK/Continue...');
                     okBtn.click();
+                    await wait(50);
                     okBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
                 }
 
@@ -771,7 +820,7 @@
             // Click body few times to skip any dialogs
             for (let i = 0; i < 3; i++) {
                 document.body.click();
-                await wait(500);
+                await wait(300);
             }
             return true;
         }
