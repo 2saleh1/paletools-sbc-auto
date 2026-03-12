@@ -531,21 +531,42 @@
                     }
                 }
 
-                // SECOND: If Submit not found (iOS case), check for back button after reasonable time
-                if (!buildComplete && checksCount >= 10) { // After 5 seconds, start checking for iOS back button
-                    const backButton = document.querySelector('.ut-navigation-button-control') ||
-                        document.querySelector('button.ut-navigation-button-control') ||
-                        document.querySelector('[class*="navigation-button"]');
+                // SECOND: If Submit not found (iOS case), check if Smart Builder finished by looking at squad
+                if (!buildComplete && checksCount >= 6) { // After 3 seconds, start checking for iOS
+                    // Debug: Let's see what's happening
+                    if (checksCount === 6) {
+                        log('🔍 iOS Check: التحقق من اكتمال بناء التشكيلة...');
+                    }
                     
-                    if (backButton) {
-                        buildComplete = true;
-                        const totalSeconds = Math.round(checksCount * 0.5);
-                        log(`✅ تم اكتمال Smart Builder بعد ${totalSeconds} ثانية (iOS - detected via back button)`);
+                    // Check if squad is built (look for player items on pitch)
+                    const playerItems = document.querySelectorAll('.ut-squad-slot-pedestal, .player-item, [class*="player-pick"]');
+                    const filledSlots = Array.from(playerItems).filter(item => {
+                        // Check if slot has a player (not empty)
+                        return item.querySelector('.player, .ut-item, [class*="item-loaded"]') ||
+                               item.classList.contains('filled') ||
+                               item.classList.contains('has-player');
+                    });
+                    
+                    // Debug logging every 10 checks
+                    if (checksCount % 10 === 0) {
+                        log(`⚠️ iOS Check ${checksCount}: التشكيلة - ${filledSlots.length} لاعب`);
+                    }
+                    
+                    // If we have players filled (Smart Builder did its job), look for back button
+                    if (filledSlots.length >= 5) { // At least 5 players means Smart Builder worked
+                        const backButton = document.querySelector('button.ut-navigation-button-control') ||
+                            document.querySelector('.ut-navigation-button-control') ||
+                            document.querySelector('[class*="navigation-button"]');
+                        
+                        if (backButton && backButton.offsetParent !== null) {
+                            buildComplete = true;
+                            const totalSeconds = Math.round(checksCount * 0.5);
+                            log(`✅ تم اكتمال Smart Builder بعد ${totalSeconds} ثانية (iOS - ${filledSlots.length} لاعب)`);
 
-                        // iOS: Click back button to return to main SBC view before Submit
-                        log('🔍 تم العثور على زر الرجوع (iOS)');
-                        log(`   - Tag: ${backButton.tagName}`);
-                        log(`   - Class: ${backButton.className}`);
+                            // iOS: Click back button to return to main SBC view before Submit
+                            log('🔍 تم العثور على زر الرجوع (iOS)');
+                            log(`   - Tag: ${backButton.tagName}`);
+                            log(`   - Class: ${backButton.className}`);
                         
                         backButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         await wait(200);
