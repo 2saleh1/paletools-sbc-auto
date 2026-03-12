@@ -309,11 +309,11 @@
             log('⏳ التحقق من فتح SBC...');
             let pollAttempts = 0;
             const maxPollAttempts = 15; // 15 * 200ms = 3 seconds
-            
+
             while (pollAttempts < maxPollAttempts) {
                 await wait(200);
                 const check = document.querySelector('.ut-sbc-challenge-tile, .challenge-tile, .ut-squad-builder-container, .ut-squad-pitch-view');
-                
+
                 if (check) {
                     log(`✅ تم فتح SBC في المحاولة ${attempt}`);
                     sbcOpened = true;
@@ -323,7 +323,7 @@
             }
 
             if (sbcOpened) break;
-            
+
             log(`⚠️ المحاولة ${attempt} فشلت - إعادة المحاولة...`);
             await wait(300);
         }
@@ -395,12 +395,12 @@
             // Scroll to button
             squadEditButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
             await wait(200);
-            
+
             // Highlight button
             squadEditButton.style.outline = '3px solid #3b82f6';
             await wait(150);
             squadEditButton.style.outline = '';
-            
+
             // Click using multiple methods
             log('🖱️ فتح قائمة خيارات التشكيلة...');
             squadEditButton.click();
@@ -537,27 +537,27 @@
                     if (checksCount === 6) {
                         log('🔍 iOS Check: التحقق من اكتمال بناء التشكيلة...');
                     }
-                    
+
                     // Check if squad is built (look for player items on pitch)
                     const playerItems = document.querySelectorAll('.ut-squad-slot-pedestal, .player-item, [class*="player-pick"]');
                     const filledSlots = Array.from(playerItems).filter(item => {
                         // Check if slot has a player (not empty)
                         return item.querySelector('.player, .ut-item, [class*="item-loaded"]') ||
-                               item.classList.contains('filled') ||
-                               item.classList.contains('has-player');
+                            item.classList.contains('filled') ||
+                            item.classList.contains('has-player');
                     });
-                    
+
                     // Debug logging every 10 checks
                     if (checksCount % 10 === 0) {
                         log(`⚠️ iOS Check ${checksCount}: التشكيلة - ${filledSlots.length} لاعب`);
                     }
-                    
+
                     // If we have players filled (Smart Builder did its job), look for back button
                     if (filledSlots.length >= 5) { // At least 5 players means Smart Builder worked
                         const backButton = document.querySelector('button.ut-navigation-button-control') ||
                             document.querySelector('.ut-navigation-button-control') ||
                             document.querySelector('[class*="navigation-button"]');
-                        
+
                         if (backButton && backButton.offsetParent !== null) {
                             buildComplete = true;
                             const totalSeconds = Math.round(checksCount * 0.5);
@@ -567,48 +567,49 @@
                             log('🔍 تم العثور على زر الرجوع (iOS)');
                             log(`   - Tag: ${backButton.tagName}`);
                             log(`   - Class: ${backButton.className}`);
-                        
-                        backButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        await wait(200);
-                        
-                        // Highlight
-                        backButton.style.outline = '3px solid #3b82f6';
-                        await wait(150);
-                        backButton.style.outline = '';
-                        
-                        // Click using multiple methods
-                        log('🖱️ الضغط على زر الرجوع...');
-                        backButton.click();
-                        await wait(50);
-                        backButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-                        await wait(50);
-                        backButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-                        await wait(30);
-                        backButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-                        
-                        log('⏳ انتظار ظهور زر Submit بعد الرجوع...');
-                        
-                        // Poll for Submit button appearance (instead of fixed wait)
-                        let submitAppeared = false;
-                        for (let j = 0; j < 20; j++) { // 20 * 150ms = 3 seconds max
-                            await wait(150);
-                            const testSubmit = document.querySelector('button.btn-standard.call-to-action, button.call-to-action');
-                            if (testSubmit && testSubmit.offsetParent !== null) {
-                                submitAppeared = true;
-                                log('✅ تم الرجوع إلى عرض SBC الرئيسي - ظهر زر Submit');
-                                
-                                // Scroll to Submit
-                                testSubmit.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                await wait(200);
-                                break;
-                            }
-                        }
-                        
-                        if (!submitAppeared) {
-                            log('⚠️ لم يظهر زر Submit بعد الرجوع - المتابعة على أي حال...');
-                        }
 
-                        break;
+                            backButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            await wait(200);
+
+                            // Highlight
+                            backButton.style.outline = '3px solid #3b82f6';
+                            await wait(150);
+                            backButton.style.outline = '';
+
+                            // Click using multiple methods
+                            log('🖱️ الضغط على زر الرجوع...');
+                            backButton.click();
+                            await wait(50);
+                            backButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                            await wait(50);
+                            backButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                            await wait(30);
+                            backButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+
+                            log('⏳ انتظار ظهور زر Submit بعد الرجوع...');
+
+                            // Poll for Submit button appearance (instead of fixed wait)
+                            let submitAppeared = false;
+                            for (let j = 0; j < 20; j++) { // 20 * 150ms = 3 seconds max
+                                await wait(150);
+                                const testSubmit = document.querySelector('button.btn-standard.call-to-action, button.call-to-action');
+                                if (testSubmit && testSubmit.offsetParent !== null) {
+                                    submitAppeared = true;
+                                    log('✅ تم الرجوع إلى عرض SBC الرئيسي - ظهر زر Submit');
+
+                                    // Scroll to Submit
+                                    testSubmit.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    await wait(200);
+                                    break;
+                                }
+                            }
+
+                            if (!submitAppeared) {
+                                log('⚠️ لم يظهر زر Submit بعد الرجوع - المتابعة على أي حال...');
+                            }
+
+                            break;
+                        }
                     }
                 }
 
@@ -622,522 +623,522 @@
             }
 
             if (!buildComplete) {
-                log('⚠️ انتهى وقت الانتظار (60ث)');
-                log('🔍 تحقق من حالة الصفحة...');
+                    log('⚠️ انتهى وقت الانتظار (60ث)');
+                    log('🔍 تحقق من حالة الصفحة...');
 
-                // Debug: Check what's on the page
-                const allButtons = document.querySelectorAll('button');
-                log(`🔍 عدد الأزرار في الصفحة: ${allButtons.length}`);
+                    // Debug: Check what's on the page
+                    const allButtons = document.querySelectorAll('button');
+                    log(`🔍 عدد الأزرار في الصفحة: ${allButtons.length}`);
 
-                // Check for error messages
-                const errorMsg = document.querySelector('.notification.error, .ut-notification--error');
-                if (errorMsg) {
-                    log(`❌ رسالة خطأ: ${errorMsg.textContent.trim()}`);
+                    // Check for error messages
+                    const errorMsg = document.querySelector('.notification.error, .ut-notification--error');
+                    if (errorMsg) {
+                        log(`❌ رسالة خطأ: ${errorMsg.textContent.trim()}`);
+                    }
+
+                    return false;
                 }
 
-                return false;
-            }
-
-            return true;
-        }
-
-        log('⚠️ لم يتم العثور على زر Smart Builder - تأكد أن Paletools شغال');
-        return false;
-    }
-
-    // ========== تقديم SBC ==========
-    async function submitSBC() {
-        log('📤 إرسال SBC...');
-
-        // Wait a moment for UI to be ready
-        await wait(800);
-
-        // Try to find Submit button with multiple strategies
-        log('🔍 البحث عن زر Submit...');
-
-        const submitSelectors = [
-            'button.btn-standard.call-to-action',
-            'button.call-to-action',
-            'button[class*="call-to-action"]',
-            'button[class*="submit"]',
-            '.ut-squad-pitch-view button.call-to-action',
-            '.ut-sbc-challenge-details button.call-to-action',
-            '.ut-button-group button.call-to-action'
-        ];
-
-        let submitBtn = null;
-        for (const selector of submitSelectors) {
-            const btn = document.querySelector(selector);
-            if (btn && btn.offsetParent !== null) {
-                const isDisabled = btn.disabled ||
-                    btn.classList.contains('disabled') ||
-                    btn.getAttribute('disabled') !== null;
-
-                if (!isDisabled) {
-                    submitBtn = btn;
-                    log(`✅ تم العثور على زر Submit: ${selector}`);
-                    break;
-                }
-            }
-        }
-
-        // Fallback: Search by text
-        if (!submitBtn) {
-            submitBtn = findElementByText('Submit', 'button') ||
-                findElementByText('Exchange', 'button') ||
-                findElementByText('تقديم', 'button') ||
-                findElementByText('إرسال', 'button');
-
-            if (submitBtn && submitBtn.offsetParent !== null) {
-                log('✅ تم العثور على زر Submit (عن طريق النص)');
-            }
-        }
-
-        if (submitBtn && submitBtn.offsetParent !== null) {
-            // Scroll to Submit button
-            submitBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            await wait(200);
-
-            // Highlight
-            submitBtn.style.outline = '3px solid #10b981';
-            await wait(150);
-            submitBtn.style.outline = '';
-
-            // Click using multiple methods (EA might not respond to regular click)
-            log('🖱️ الضغط على زر Submit...');
-            submitBtn.click();
-            await wait(50);
-            submitBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-            await wait(50);
-            submitBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-            await wait(30);
-            submitBtn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-
-            log('👆 تم الضغط على زر Submit');
-            log('⏳ انتظار ظهور شاشة التأكيد...');
-            await wait(300); // Quick check for confirm button
-
-            // Confirm if needed
-            const confirmButton = findElementByText('Confirm', 'button') ||
-                findElementByText('Yes', 'button') ||
-                findElementByText('تأكيد', 'button') ||
-                document.querySelector('.ut-button-group button.call-to-action');
-
-            if (confirmButton && confirmButton.offsetParent !== null) {
-                log('📝 تأكيد الإرسال...');
-                // Use multiple click methods for confirm too
-                confirmButton.click();
-                await wait(50);
-                confirmButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-                await wait(30);
-                confirmButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-                await wait(30);
-                confirmButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-                log('⏳ انتظار معالجة الطلب...');
-                await wait(500); // Wait for server response
-            }
-
-            log('✅ تم تقديم SBC بنجاح');
-            sbcsCompleted++;
-            updateUI();
-            return true;
-        }
-
-        // Debug info if button not found
-        log('❌ فشل تقديم SBC - لم يتم العثور على زر Submit');
-        log('🔍 معلومات Debug:');
-        const allButtons = document.querySelectorAll('button');
-        log(`  - عدد الأزرار: ${allButtons.length}`);
-
-        // List visible buttons
-        const visibleButtons = Array.from(allButtons)
-            .filter(btn => btn.offsetParent !== null)
-            .slice(0, 5);
-
-        if (visibleButtons.length > 0) {
-            log(`  - أول 5 أزرار مرئية:`);
-            visibleButtons.forEach((btn, i) => {
-                log(`    ${i + 1}. ${btn.className} - "${btn.textContent.trim().substring(0, 30)}"`);
-            });
-        }
-
-        return false;
-    }
-
-    // ========== فتح المكافآت ==========
-    async function claimRewards() {
-        log('🎁 استلام المكافآت...');
-
-        log('⏳ انتظار ظهور شاشة المكافآت...');
-        await wait(500);
-
-        // Search for Claim Rewards button (recorded data: BUTTON, class="btn-standard primary", text="Claim Rewards", parent=FOOTER)
-        log('🔍 البحث عن زر Claim Rewards...');
-
-        let claimButton = null;
-
-        // Method 1: Search in footer for btn-standard primary
-        const footer = document.querySelector('footer');
-        if (footer) {
-            const buttons = footer.querySelectorAll('button.btn-standard.primary, button.btn-standard');
-            for (const btn of buttons) {
-                if (btn.textContent.includes('Claim Rewards') || btn.textContent.includes('Claim')) {
-                    claimButton = btn;
-                    log('✅ Found Claim Rewards in footer');
-                    break;
-                }
-            }
-        }
-
-        // Method 2: Search globally for Claim Rewards text
-        if (!claimButton) {
-            claimButton = findElementByText('Claim Rewards', 'button') ||
-                findElementByText('Claim', 'button') ||
-                findElementByText('Ok', 'button') ||
-                findElementByText('OK', 'button');
-            if (claimButton) {
-                log('✅ Found Claim Rewards via text search');
-            }
-        }
-
-        // Method 3: Try common reward button selectors
-        if (!claimButton) {
-            const selectors = [
-                'button.ut-button',
-                'button.btn-standard.primary',
-                'button[class*="call-to-action"]',
-                '.ut-navigation-button-control'
-            ];
-
-            for (const selector of selectors) {
-                const btn = document.querySelector(selector);
-                if (btn && (btn.textContent.includes('Claim') || btn.textContent.includes('Ok') || btn.textContent.includes('OK'))) {
-                    claimButton = btn;
-                    log(`✅ Found via selector: ${selector}`);
-                    break;
-                }
-            }
-        }
-
-        if (claimButton) {
-            log('✅ تم العثور على زر Claim Rewards');
-
-            // Scroll to button
-            claimButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            await wait(200);
-
-            // Highlight
-            claimButton.style.outline = '3px solid #fbbf24';
-            await wait(150);
-            claimButton.style.outline = '';
-
-            // Click using multiple methods
-            log('🖱️ الضغط على زر Claim Rewards...');
-            claimButton.click();
-            await wait(50);
-            claimButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-            await wait(50);
-            claimButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-            await wait(30);
-            claimButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-
-            log('⏳ انتظار معالجة المكافآت...');
-            await wait(500);
-
-            // Try clicking through any additional screens (OK, Continue, etc.)
-            for (let i = 0; i < 3; i++) {
-                await wait(300);
-
-                const okBtn = findElementByText('Ok', 'button') ||
-                    findElementByText('OK', 'button') ||
-                    findElementByText('Continue', 'button') ||
-                    findElementByText('متابعة', 'button');
-
-                if (okBtn) {
-                    log('🖱️ الضغط على زر OK/Continue...');
-                    okBtn.click();
-                    await wait(50);
-                    okBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-                }
-
-                // Click anywhere on screen to skip animations
-                document.body.click();
-            }
-
-            log('✅ تم استلام المكافآت');
-            return true;
-        } else {
-            log('⚠️ لم يتم العثور على زر Claim Rewards - قد تكون المكافآت already claimed');
-            // Click body few times to skip any dialogs
-            for (let i = 0; i < 3; i++) {
-                document.body.click();
-                await wait(300);
-            }
-            return true;
-        }
-    }
-
-    // ========== فتح البكجات ==========
-    async function openPacks(count = 1) {
-        log(`📦 فتح ${count} بكج...`);
-
-        // Navigate to store
-        await goToStore();
-        await wait(CONFIG.WAIT_TIME);
-
-        for (let i = 0; i < count; i++) {
-            const success = await openSinglePack();
-            if (!success) break;
-
-            await wait(CONFIG.WAIT_TIME);
-        }
-
-        log(`✅ تم فتح ${count} بكج`);
-    }
-
-    async function goToStore() {
-        log('🏪 الانتقال إلى المتجر...');
-
-        const storeSelectors = [
-            'button.ut-tab-bar-item.icon-store',
-            'a[href*="store"]',
-            'button[class*="store"]',
-            '.icon-store'
-        ];
-
-        for (const selector of storeSelectors) {
-            if (await clickElement(selector)) {
-                await wait(CONFIG.WAIT_TIME);
                 return true;
             }
-        }
 
-        return false;
-    }
-
-    async function openSinglePack() {
-        // Find first pack
-        const pack = document.querySelector('.ut-pack-tile, .ut-tile-pack, .pack-item');
-        if (!pack) {
-            log('❌ لا توجد بكجات متاحة');
+            log('⚠️ لم يتم العثور على زر Smart Builder - تأكد أن Paletools شغال');
             return false;
         }
 
-        pack.click();
-        await wait(1000);
+        // ========== تقديم SBC ==========
+        async function submitSBC() {
+            log('📤 إرسال SBC...');
 
-        // Open pack
-        await clickElement('.btn-standard.call-to-action');
-        await wait(CONFIG.WAIT_TIME);
+            // Wait a moment for UI to be ready
+            await wait(800);
 
-        // Skip animation
-        document.body.click();
-        document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
-        await wait(CONFIG.WAIT_TIME);
+            // Try to find Submit button with multiple strategies
+            log('🔍 البحث عن زر Submit...');
 
-        // Handle duplicates
-        await handleDuplicates();
+            const submitSelectors = [
+                'button.btn-standard.call-to-action',
+                'button.call-to-action',
+                'button[class*="call-to-action"]',
+                'button[class*="submit"]',
+                '.ut-squad-pitch-view button.call-to-action',
+                '.ut-sbc-challenge-details button.call-to-action',
+                '.ut-button-group button.call-to-action'
+            ];
 
-        packsOpened++;
-        updateUI();
+            let submitBtn = null;
+            for (const selector of submitSelectors) {
+                const btn = document.querySelector(selector);
+                if (btn && btn.offsetParent !== null) {
+                    const isDisabled = btn.disabled ||
+                        btn.classList.contains('disabled') ||
+                        btn.getAttribute('disabled') !== null;
 
-        return true;
-    }
-
-    // ========== إدارة اللاعبين المكررين ==========
-    async function handleDuplicates() {
-        log('🔄 معالجة اللاعبين المكررين...');
-
-        await wait(1500);
-
-        // Get all duplicate items
-        const items = document.querySelectorAll('.ut-item, .player-item, [class*="item"]');
-
-        for (const item of items) {
-            const isDuplicate = item.querySelector('.duplicate, [class*="duplicate"]');
-            if (!isDuplicate) continue;
-
-            // Check rarity
-            const isGold = item.classList.contains('gold') ||
-                item.classList.contains('rare') ||
-                item.querySelector('.gold, .rare');
-
-            const isBronzeOrSilver = item.classList.contains('bronze') ||
-                item.classList.contains('silver') ||
-                item.querySelector('.bronze, .silver');
-
-            // Select the item
-            item.click();
-            await wait(300);
-
-            if (isGold && CONFIG.GOLD_DUPLICATES_TO_SBC_STORAGE) {
-                // Send gold duplicates to SBC Storage
-                const success = await sendToSBCStorage();
-                if (success) {
-                    goldsSentToStorage++;
-                    log('💛 تم إرسال لاعب ذهبي إلى SBC Storage');
-                } else if (CONFIG.STOP_ON_SBC_STORAGE_FULL) {
-                    log('⚠️ SBC Storage ممتلئ! إيقاف السكربت...');
-                    stopScript();
-                    return;
+                    if (!isDisabled) {
+                        submitBtn = btn;
+                        log(`✅ تم العثور على زر Submit: ${selector}`);
+                        break;
+                    }
                 }
-            } else if (isBronzeOrSilver && CONFIG.BRONZE_SILVER_QUICK_SELL) {
-                // Quick sell bronze/silver duplicates
-                await quickSellItem();
-                quickSells++;
-                log('💰 تم بيع لاعب برونزي/فضي');
             }
 
-            await wait(500);
-        }
+            // Fallback: Search by text
+            if (!submitBtn) {
+                submitBtn = findElementByText('Submit', 'button') ||
+                    findElementByText('Exchange', 'button') ||
+                    findElementByText('تقديم', 'button') ||
+                    findElementByText('إرسال', 'button');
 
-        // Send remaining items to club
-        await clickElement('.store-all, .sendToClub');
-
-        updateUI();
-    }
-
-    async function sendToSBCStorage() {
-        // Right click or long press on item
-        const selectedItem = document.querySelector('.selected, .ut-item--selected');
-        if (!selectedItem) return false;
-
-        // Try to open context menu
-        selectedItem.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }));
-        await wait(500);
-
-        // Look for "Send to SBC Storage" option
-        const sbcStorageBtn = findElementByText('SBC', 'button') ||
-            findElementByText('Storage', 'button');
-
-        if (sbcStorageBtn) {
-            sbcStorageBtn.click();
-            await wait(500);
-
-            // Check if storage is full
-            const fullMessage = findElementByText('full', 'div') ||
-                findElementByText('maximum', 'div');
-
-            if (fullMessage) {
-                return false; // Storage full
+                if (submitBtn && submitBtn.offsetParent !== null) {
+                    log('✅ تم العثور على زر Submit (عن طريق النص)');
+                }
             }
 
-            return true;
+            if (submitBtn && submitBtn.offsetParent !== null) {
+                // Scroll to Submit button
+                submitBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                await wait(200);
+
+                // Highlight
+                submitBtn.style.outline = '3px solid #10b981';
+                await wait(150);
+                submitBtn.style.outline = '';
+
+                // Click using multiple methods (EA might not respond to regular click)
+                log('🖱️ الضغط على زر Submit...');
+                submitBtn.click();
+                await wait(50);
+                submitBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                await wait(50);
+                submitBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                await wait(30);
+                submitBtn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+
+                log('👆 تم الضغط على زر Submit');
+                log('⏳ انتظار ظهور شاشة التأكيد...');
+                await wait(300); // Quick check for confirm button
+
+                // Confirm if needed
+                const confirmButton = findElementByText('Confirm', 'button') ||
+                    findElementByText('Yes', 'button') ||
+                    findElementByText('تأكيد', 'button') ||
+                    document.querySelector('.ut-button-group button.call-to-action');
+
+                if (confirmButton && confirmButton.offsetParent !== null) {
+                    log('📝 تأكيد الإرسال...');
+                    // Use multiple click methods for confirm too
+                    confirmButton.click();
+                    await wait(50);
+                    confirmButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                    await wait(30);
+                    confirmButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                    await wait(30);
+                    confirmButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+                    log('⏳ انتظار معالجة الطلب...');
+                    await wait(500); // Wait for server response
+                }
+
+                log('✅ تم تقديم SBC بنجاح');
+                sbcsCompleted++;
+                updateUI();
+                return true;
+            }
+
+            // Debug info if button not found
+            log('❌ فشل تقديم SBC - لم يتم العثور على زر Submit');
+            log('🔍 معلومات Debug:');
+            const allButtons = document.querySelectorAll('button');
+            log(`  - عدد الأزرار: ${allButtons.length}`);
+
+            // List visible buttons
+            const visibleButtons = Array.from(allButtons)
+                .filter(btn => btn.offsetParent !== null)
+                .slice(0, 5);
+
+            if (visibleButtons.length > 0) {
+                log(`  - أول 5 أزرار مرئية:`);
+                visibleButtons.forEach((btn, i) => {
+                    log(`    ${i + 1}. ${btn.className} - "${btn.textContent.trim().substring(0, 30)}"`);
+                });
+            }
+
+            return false;
         }
 
-        // Alternative: Try keyboard shortcut
-        document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true }));
-        await wait(500);
+        // ========== فتح المكافآت ==========
+        async function claimRewards() {
+            log('🎁 استلام المكافآت...');
 
-        return true;
-    }
+            log('⏳ انتظار ظهور شاشة المكافآت...');
+            await wait(500);
 
-    async function quickSellItem() {
-        // Look for quick sell button
-        const quickSellSelectors = [
-            'button:contains("Quick Sell")',
-            'button[class*="quicksell"]',
-            '.quick-sell-button'
-        ];
+            // Search for Claim Rewards button (recorded data: BUTTON, class="btn-standard primary", text="Claim Rewards", parent=FOOTER)
+            log('🔍 البحث عن زر Claim Rewards...');
 
-        for (const selector of quickSellSelectors) {
-            if (await clickElement(selector)) {
-                // Confirm
-                const confirmBtn = findElementByText('Confirm', 'button');
-                if (confirmBtn) {
-                    confirmBtn.click();
+            let claimButton = null;
+
+            // Method 1: Search in footer for btn-standard primary
+            const footer = document.querySelector('footer');
+            if (footer) {
+                const buttons = footer.querySelectorAll('button.btn-standard.primary, button.btn-standard');
+                for (const btn of buttons) {
+                    if (btn.textContent.includes('Claim Rewards') || btn.textContent.includes('Claim')) {
+                        claimButton = btn;
+                        log('✅ Found Claim Rewards in footer');
+                        break;
+                    }
+                }
+            }
+
+            // Method 2: Search globally for Claim Rewards text
+            if (!claimButton) {
+                claimButton = findElementByText('Claim Rewards', 'button') ||
+                    findElementByText('Claim', 'button') ||
+                    findElementByText('Ok', 'button') ||
+                    findElementByText('OK', 'button');
+                if (claimButton) {
+                    log('✅ Found Claim Rewards via text search');
+                }
+            }
+
+            // Method 3: Try common reward button selectors
+            if (!claimButton) {
+                const selectors = [
+                    'button.ut-button',
+                    'button.btn-standard.primary',
+                    'button[class*="call-to-action"]',
+                    '.ut-navigation-button-control'
+                ];
+
+                for (const selector of selectors) {
+                    const btn = document.querySelector(selector);
+                    if (btn && (btn.textContent.includes('Claim') || btn.textContent.includes('Ok') || btn.textContent.includes('OK'))) {
+                        claimButton = btn;
+                        log(`✅ Found via selector: ${selector}`);
+                        break;
+                    }
+                }
+            }
+
+            if (claimButton) {
+                log('✅ تم العثور على زر Claim Rewards');
+
+                // Scroll to button
+                claimButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                await wait(200);
+
+                // Highlight
+                claimButton.style.outline = '3px solid #fbbf24';
+                await wait(150);
+                claimButton.style.outline = '';
+
+                // Click using multiple methods
+                log('🖱️ الضغط على زر Claim Rewards...');
+                claimButton.click();
+                await wait(50);
+                claimButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                await wait(50);
+                claimButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                await wait(30);
+                claimButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+
+                log('⏳ انتظار معالجة المكافآت...');
+                await wait(500);
+
+                // Try clicking through any additional screens (OK, Continue, etc.)
+                for (let i = 0; i < 3; i++) {
+                    await wait(300);
+
+                    const okBtn = findElementByText('Ok', 'button') ||
+                        findElementByText('OK', 'button') ||
+                        findElementByText('Continue', 'button') ||
+                        findElementByText('متابعة', 'button');
+
+                    if (okBtn) {
+                        log('🖱️ الضغط على زر OK/Continue...');
+                        okBtn.click();
+                        await wait(50);
+                        okBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                    }
+
+                    // Click anywhere on screen to skip animations
+                    document.body.click();
+                }
+
+                log('✅ تم استلام المكافآت');
+                return true;
+            } else {
+                log('⚠️ لم يتم العثور على زر Claim Rewards - قد تكون المكافآت already claimed');
+                // Click body few times to skip any dialogs
+                for (let i = 0; i < 3; i++) {
+                    document.body.click();
                     await wait(300);
                 }
                 return true;
             }
         }
 
-        return false;
-    }
+        // ========== فتح البكجات ==========
+        async function openPacks(count = 1) {
+            log(`📦 فتح ${count} بكج...`);
 
-    // ========== العملية الكاملة ==========
-    async function completeSBCCycle(sbcIndex) {
-        if (!isRunning) return;
+            // Navigate to store
+            await goToStore();
+            await wait(CONFIG.WAIT_TIME);
 
-        log(`\n🔄 بدء دورة SBC ${sbcsCompleted + 1}...\n`);
+            for (let i = 0; i < count; i++) {
+                const success = await openSinglePack();
+                if (!success) break;
 
-        // 1. Go to SBC section
-        await goToSBCSection();
+                await wait(CONFIG.WAIT_TIME);
+            }
 
-        // 2. Get SBC list if not loaded
-        if (sbcList.length === 0) {
-            await getSBCList();
+            log(`✅ تم فتح ${count} بكج`);
         }
 
-        // 3. Select and open SBC
-        await selectAndOpenSBC(sbcIndex);
+        async function goToStore() {
+            log('🏪 الانتقال إلى المتجر...');
 
-        // 4. Use Smart Build
-        const buildSuccess = await usePaletoolsSmartBuild();
-        if (!buildSuccess) {
-            log('⚠️ Smart Builder لم يكتمل في الوقت المحدد');
-            log('🔄 محاولة الإرسال على أي حال...');
-            // Don't return false - try to submit anyway
-        }
+            const storeSelectors = [
+                'button.ut-tab-bar-item.icon-store',
+                'a[href*="store"]',
+                'button[class*="store"]',
+                '.icon-store'
+            ];
 
-        // 5. Submit SBC
-        const submitted = await submitSBC();
-        if (!submitted) {
-            log('❌ فشل تقديم SBC');
+            for (const selector of storeSelectors) {
+                if (await clickElement(selector)) {
+                    await wait(CONFIG.WAIT_TIME);
+                    return true;
+                }
+            }
+
             return false;
         }
 
-        // 6. Claim rewards
-        await claimRewards();
-
-        // 7. Open packs
-        if (CONFIG.PACKS_PER_SBC > 0) {
-            await openPacks(CONFIG.PACKS_PER_SBC);
-        }
-
-        log(`✅ تم إكمال دورة SBC بنجاح!\n`);
-        return true;
-    }
-
-    // ========== البدء ==========
-    async function startAutoSBC(sbcIndex = 0, cycles = 1) {
-        if (isRunning) {
-            log('⚠️ السكربت يعمل بالفعل!');
-            return;
-        }
-
-        isRunning = true;
-        log('🚀 بدء SBC Auto Completer...\n');
-        updateUI();
-
-        for (let i = 0; i < cycles; i++) {
-            if (!isRunning) break;
-
-            const success = await completeSBCCycle(sbcIndex);
-            if (!success) {
-                log('❌ حدث خطأ، إيقاف السكربت');
-                break;
+        async function openSinglePack() {
+            // Find first pack
+            const pack = document.querySelector('.ut-pack-tile, .ut-tile-pack, .pack-item');
+            if (!pack) {
+                log('❌ لا توجد بكجات متاحة');
+                return false;
             }
 
+            pack.click();
+            await wait(1000);
+
+            // Open pack
+            await clickElement('.btn-standard.call-to-action');
             await wait(CONFIG.WAIT_TIME);
+
+            // Skip animation
+            document.body.click();
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+            await wait(CONFIG.WAIT_TIME);
+
+            // Handle duplicates
+            await handleDuplicates();
+
+            packsOpened++;
+            updateUI();
+
+            return true;
         }
 
-        stopScript();
-    }
+        // ========== إدارة اللاعبين المكررين ==========
+        async function handleDuplicates() {
+            log('🔄 معالجة اللاعبين المكررين...');
 
-    function stopScript() {
-        isRunning = false;
-        log('\n⏸️ تم إيقاف السكربت');
-        updateUI();
-    }
+            await wait(1500);
 
-    // ========== واجهة المستخدم ==========
-    function createUI() {
-        if (document.getElementById('sbc-auto-ui')) return;
+            // Get all duplicate items
+            const items = document.querySelectorAll('.ut-item, .player-item, [class*="item"]');
 
-        const ui = document.createElement('div');
-        ui.id = 'sbc-auto-ui';
-        ui.innerHTML = `
+            for (const item of items) {
+                const isDuplicate = item.querySelector('.duplicate, [class*="duplicate"]');
+                if (!isDuplicate) continue;
+
+                // Check rarity
+                const isGold = item.classList.contains('gold') ||
+                    item.classList.contains('rare') ||
+                    item.querySelector('.gold, .rare');
+
+                const isBronzeOrSilver = item.classList.contains('bronze') ||
+                    item.classList.contains('silver') ||
+                    item.querySelector('.bronze, .silver');
+
+                // Select the item
+                item.click();
+                await wait(300);
+
+                if (isGold && CONFIG.GOLD_DUPLICATES_TO_SBC_STORAGE) {
+                    // Send gold duplicates to SBC Storage
+                    const success = await sendToSBCStorage();
+                    if (success) {
+                        goldsSentToStorage++;
+                        log('💛 تم إرسال لاعب ذهبي إلى SBC Storage');
+                    } else if (CONFIG.STOP_ON_SBC_STORAGE_FULL) {
+                        log('⚠️ SBC Storage ممتلئ! إيقاف السكربت...');
+                        stopScript();
+                        return;
+                    }
+                } else if (isBronzeOrSilver && CONFIG.BRONZE_SILVER_QUICK_SELL) {
+                    // Quick sell bronze/silver duplicates
+                    await quickSellItem();
+                    quickSells++;
+                    log('💰 تم بيع لاعب برونزي/فضي');
+                }
+
+                await wait(500);
+            }
+
+            // Send remaining items to club
+            await clickElement('.store-all, .sendToClub');
+
+            updateUI();
+        }
+
+        async function sendToSBCStorage() {
+            // Right click or long press on item
+            const selectedItem = document.querySelector('.selected, .ut-item--selected');
+            if (!selectedItem) return false;
+
+            // Try to open context menu
+            selectedItem.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }));
+            await wait(500);
+
+            // Look for "Send to SBC Storage" option
+            const sbcStorageBtn = findElementByText('SBC', 'button') ||
+                findElementByText('Storage', 'button');
+
+            if (sbcStorageBtn) {
+                sbcStorageBtn.click();
+                await wait(500);
+
+                // Check if storage is full
+                const fullMessage = findElementByText('full', 'div') ||
+                    findElementByText('maximum', 'div');
+
+                if (fullMessage) {
+                    return false; // Storage full
+                }
+
+                return true;
+            }
+
+            // Alternative: Try keyboard shortcut
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true }));
+            await wait(500);
+
+            return true;
+        }
+
+        async function quickSellItem() {
+            // Look for quick sell button
+            const quickSellSelectors = [
+                'button:contains("Quick Sell")',
+                'button[class*="quicksell"]',
+                '.quick-sell-button'
+            ];
+
+            for (const selector of quickSellSelectors) {
+                if (await clickElement(selector)) {
+                    // Confirm
+                    const confirmBtn = findElementByText('Confirm', 'button');
+                    if (confirmBtn) {
+                        confirmBtn.click();
+                        await wait(300);
+                    }
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // ========== العملية الكاملة ==========
+        async function completeSBCCycle(sbcIndex) {
+            if (!isRunning) return;
+
+            log(`\n🔄 بدء دورة SBC ${sbcsCompleted + 1}...\n`);
+
+            // 1. Go to SBC section
+            await goToSBCSection();
+
+            // 2. Get SBC list if not loaded
+            if (sbcList.length === 0) {
+                await getSBCList();
+            }
+
+            // 3. Select and open SBC
+            await selectAndOpenSBC(sbcIndex);
+
+            // 4. Use Smart Build
+            const buildSuccess = await usePaletoolsSmartBuild();
+            if (!buildSuccess) {
+                log('⚠️ Smart Builder لم يكتمل في الوقت المحدد');
+                log('🔄 محاولة الإرسال على أي حال...');
+                // Don't return false - try to submit anyway
+            }
+
+            // 5. Submit SBC
+            const submitted = await submitSBC();
+            if (!submitted) {
+                log('❌ فشل تقديم SBC');
+                return false;
+            }
+
+            // 6. Claim rewards
+            await claimRewards();
+
+            // 7. Open packs
+            if (CONFIG.PACKS_PER_SBC > 0) {
+                await openPacks(CONFIG.PACKS_PER_SBC);
+            }
+
+            log(`✅ تم إكمال دورة SBC بنجاح!\n`);
+            return true;
+        }
+
+        // ========== البدء ==========
+        async function startAutoSBC(sbcIndex = 0, cycles = 1) {
+            if (isRunning) {
+                log('⚠️ السكربت يعمل بالفعل!');
+                return;
+            }
+
+            isRunning = true;
+            log('🚀 بدء SBC Auto Completer...\n');
+            updateUI();
+
+            for (let i = 0; i < cycles; i++) {
+                if (!isRunning) break;
+
+                const success = await completeSBCCycle(sbcIndex);
+                if (!success) {
+                    log('❌ حدث خطأ، إيقاف السكربت');
+                    break;
+                }
+
+                await wait(CONFIG.WAIT_TIME);
+            }
+
+            stopScript();
+        }
+
+        function stopScript() {
+            isRunning = false;
+            log('\n⏸️ تم إيقاف السكربت');
+            updateUI();
+        }
+
+        // ========== واجهة المستخدم ==========
+        function createUI() {
+            if (document.getElementById('sbc-auto-ui')) return;
+
+            const ui = document.createElement('div');
+            ui.id = 'sbc-auto-ui';
+            ui.innerHTML = `
             <style>
                 #sbc-auto-ui {
                     position: fixed;
@@ -1494,291 +1495,291 @@
             </div>
         `;
 
-        document.body.appendChild(ui);
+            document.body.appendChild(ui);
 
-        // Event listeners
-        document.getElementById('refresh-btn').addEventListener('click', async () => {
-            // Check if we're in SBC section
-            const inSBCSection = document.querySelector('.ut-sbc-set-tile, .sbc-set-tile, [class*="sbc-set"]');
+            // Event listeners
+            document.getElementById('refresh-btn').addEventListener('click', async () => {
+                // Check if we're in SBC section
+                const inSBCSection = document.querySelector('.ut-sbc-set-tile, .sbc-set-tile, [class*="sbc-set"]');
 
-            if (!inSBCSection) {
-                alert('⚠️ تنبيه مهم\n\nيجب الدخول إلى صفحة SBC أولاً!\n\n1. اضغط على أيقونة SBC في القائمة\n2. ثم اضغط "تحميل قائمة SBCs"');
-                log('⚠️ يجب الدخول إلى صفحة SBC أولاً');
-                return;
-            }
-
-            log('🔄 جاري تحميل قائمة SBCs...');
-            await wait(500);
-            await getSBCList();
-
-            const select = document.getElementById('sbc-select');
-            select.innerHTML = '';
-
-            if (sbcList.length === 0) {
-                select.innerHTML = '<option value="-1">-- لا توجد SBCs متاحة --</option>';
-                log('❌ لم يتم العثور على SBCs');
-            } else {
-                sbcList.forEach((sbc, index) => {
-                    const option = document.createElement('option');
-                    option.value = index;
-                    option.textContent = sbc.name;
-                    select.appendChild(option);
-                });
-                log(`✅ تم تحميل ${sbcList.length} SBC`);
-            }
-        });
-
-        document.getElementById('start-btn').addEventListener('click', () => {
-            const sbcIndex = parseInt(document.getElementById('sbc-select').value);
-            const cycles = parseInt(document.getElementById('cycles-input').value);
-
-            if (sbcIndex < 0) {
-                alert('⚠️ اختر SBC من القائمة أولاً!');
-                return;
-            }
-
-            // Update config from checkboxes
-            CONFIG.GOLD_DUPLICATES_TO_SBC_STORAGE = document.getElementById('gold-storage').checked;
-            CONFIG.BRONZE_SILVER_QUICK_SELL = document.getElementById('bronze-silver-sell').checked;
-            CONFIG.STOP_ON_SBC_STORAGE_FULL = document.getElementById('stop-full').checked;
-
-            document.getElementById('start-btn').style.display = 'none';
-            document.getElementById('stop-btn').style.display = 'block';
-            document.getElementById('refresh-btn').disabled = true;
-
-            startAutoSBC(sbcIndex, cycles);
-        });
-
-        document.getElementById('stop-btn').addEventListener('click', () => {
-            stopScript();
-            document.getElementById('start-btn').style.display = 'block';
-            document.getElementById('stop-btn').style.display = 'none';
-            document.getElementById('refresh-btn').disabled = false;
-        });
-
-        document.getElementById('copy-log-btn').addEventListener('click', () => {
-            const logContainer = document.getElementById('log-container');
-            const logEntries = logContainer.querySelectorAll('.log-entry');
-            const logText = Array.from(logEntries).map(entry => entry.textContent).join('\n');
-
-            // Copy to clipboard
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(logText).then(() => {
-                    const btn = document.getElementById('copy-log-btn');
-                    const originalText = btn.textContent;
-                    btn.textContent = '✅ تم النسخ!';
-                    setTimeout(() => {
-                        btn.textContent = originalText;
-                    }, 2000);
-                }).catch(() => {
-                    alert('فشل النسخ. جرب يدوياً.');
-                });
-            } else {
-                // Fallback for older browsers
-                const textArea = document.createElement('textarea');
-                textArea.value = logText;
-                textArea.style.position = 'fixed';
-                textArea.style.left = '-999999px';
-                document.body.appendChild(textArea);
-                textArea.select();
-                try {
-                    document.execCommand('copy');
-                    alert('✅ تم نسخ اللوق!');
-                } catch (err) {
-                    alert('فشل النسخ');
+                if (!inSBCSection) {
+                    alert('⚠️ تنبيه مهم\n\nيجب الدخول إلى صفحة SBC أولاً!\n\n1. اضغط على أيقونة SBC في القائمة\n2. ثم اضغط "تحميل قائمة SBCs"');
+                    log('⚠️ يجب الدخول إلى صفحة SBC أولاً');
+                    return;
                 }
-                document.body.removeChild(textArea);
-            }
-        });
 
-        // Record Mode - Click detector for debugging
-        let recordMode = false;
-        let clickListener = null;
-        let mousedownListener = null;
-        let hoverListener = null;
-        let keyListener = null;
+                log('🔄 جاري تحميل قائمة SBCs...');
+                await wait(500);
+                await getSBCList();
 
-        document.getElementById('record-btn').addEventListener('click', () => {
-            recordMode = !recordMode;
-            const btn = document.getElementById('record-btn');
+                const select = document.getElementById('sbc-select');
+                select.innerHTML = '';
 
-            if (recordMode) {
-                // Activate record mode
-                btn.textContent = '🔴 وضع التسجيل: تشغيل';
-                btn.classList.add('active');
-                log('═══════════════════════════');
-                log('🔴 وضع التسجيل مفعّل');
-                log('اضغط على أي عنصر في الصفحة');
-                log('✅ Listener activated on entire page');
-                log('═══════════════════════════');
+                if (sbcList.length === 0) {
+                    select.innerHTML = '<option value="-1">-- لا توجد SBCs متاحة --</option>';
+                    log('❌ لم يتم العثور على SBCs');
+                } else {
+                    sbcList.forEach((sbc, index) => {
+                        const option = document.createElement('option');
+                        option.value = index;
+                        option.textContent = sbc.name;
+                        select.appendChild(option);
+                    });
+                    log(`✅ تم تحميل ${sbcList.length} SBC`);
+                }
+            });
 
-                // Add click listener to capture ALL clicks (including EA Web App)
-                clickListener = function (e) {
-                    // Skip clicks on script UI to avoid spam
-                    if (e.target.closest('#sbc-auto-ui') || e.target.id === 'sbc-reopen-btn') {
-                        return;
+            document.getElementById('start-btn').addEventListener('click', () => {
+                const sbcIndex = parseInt(document.getElementById('sbc-select').value);
+                const cycles = parseInt(document.getElementById('cycles-input').value);
+
+                if (sbcIndex < 0) {
+                    alert('⚠️ اختر SBC من القائمة أولاً!');
+                    return;
+                }
+
+                // Update config from checkboxes
+                CONFIG.GOLD_DUPLICATES_TO_SBC_STORAGE = document.getElementById('gold-storage').checked;
+                CONFIG.BRONZE_SILVER_QUICK_SELL = document.getElementById('bronze-silver-sell').checked;
+                CONFIG.STOP_ON_SBC_STORAGE_FULL = document.getElementById('stop-full').checked;
+
+                document.getElementById('start-btn').style.display = 'none';
+                document.getElementById('stop-btn').style.display = 'block';
+                document.getElementById('refresh-btn').disabled = true;
+
+                startAutoSBC(sbcIndex, cycles);
+            });
+
+            document.getElementById('stop-btn').addEventListener('click', () => {
+                stopScript();
+                document.getElementById('start-btn').style.display = 'block';
+                document.getElementById('stop-btn').style.display = 'none';
+                document.getElementById('refresh-btn').disabled = false;
+            });
+
+            document.getElementById('copy-log-btn').addEventListener('click', () => {
+                const logContainer = document.getElementById('log-container');
+                const logEntries = logContainer.querySelectorAll('.log-entry');
+                const logText = Array.from(logEntries).map(entry => entry.textContent).join('\n');
+
+                // Copy to clipboard
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(logText).then(() => {
+                        const btn = document.getElementById('copy-log-btn');
+                        const originalText = btn.textContent;
+                        btn.textContent = '✅ تم النسخ!';
+                        setTimeout(() => {
+                            btn.textContent = originalText;
+                        }, 2000);
+                    }).catch(() => {
+                        alert('فشل النسخ. جرب يدوياً.');
+                    });
+                } else {
+                    // Fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = logText;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-999999px';
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        alert('✅ تم نسخ اللوق!');
+                    } catch (err) {
+                        alert('فشل النسخ');
                     }
+                    document.body.removeChild(textArea);
+                }
+            });
 
-                    const el = e.target;
+            // Record Mode - Click detector for debugging
+            let recordMode = false;
+            let clickListener = null;
+            let mousedownListener = null;
+            let hoverListener = null;
+            let keyListener = null;
 
-                    // Log element details
+            document.getElementById('record-btn').addEventListener('click', () => {
+                recordMode = !recordMode;
+                const btn = document.getElementById('record-btn');
+
+                if (recordMode) {
+                    // Activate record mode
+                    btn.textContent = '🔴 وضع التسجيل: تشغيل';
+                    btn.classList.add('active');
                     log('═══════════════════════════');
-                    log('🎯 Element clicked:');
-                    log(`Tag: ${el.tagName}`);
-                    log(`ID: ${el.id || '(no id)'}`);
-                    log(`Class: ${el.className}`);
-                    log(`Text: ${el.textContent.trim().substring(0, 50)}`);
-                    log(`Title: ${el.title || '(no title)'}`);
-                    log(`Role: ${el.getAttribute('role') || '(no role)'}`);
-
-                    // Data attributes
-                    const dataAttrs = Object.keys(el.dataset);
-                    if (dataAttrs.length > 0) {
-                        log(`Data attrs: ${dataAttrs.join(', ')}`);
-                    } else {
-                        log('Data attrs: (none)');
-                    }
-
-                    // Parent info
-                    if (el.parentElement) {
-                        log(`Parent tag: ${el.parentElement.tagName}`);
-                        log(`Parent class: ${el.parentElement.className || '(no class)'}`);
-                    }
-
-                    // Check if in squad area
-                    const inSquad = el.closest('.ut-squad-pitch-view, .ut-squad-builder-container, .ut-sbc-squad-overview');
-                    log(`In squad area: ${inSquad ? 'YES ✅' : 'NO ❌'}`);
-
+                    log('🔴 وضع التسجيل مفعّل');
+                    log('اضغط على أي عنصر في الصفحة');
+                    log('✅ Listener activated on entire page');
                     log('═══════════════════════════');
-                };
 
-                // Also track mousedown in case EA uses that instead of click
-                mousedownListener = function (e) {
-                    // Skip clicks on script UI
-                    if (e.target.closest('#sbc-auto-ui') || e.target.id === 'sbc-reopen-btn') {
-                        return;
-                    }
-
-                    const el = e.target;
-                    log('💡 Mousedown on: ' + el.tagName + (el.className ? '.' + el.className.split(' ')[0] : ''));
-                };
-
-                // Add listeners with capture=true to catch ALL events
-                // Use multiple phases to ensure we catch EA's events
-                document.body.addEventListener('click', clickListener, true);
-                document.body.addEventListener('click', clickListener, false);
-                document.addEventListener('click', clickListener, true);
-                document.addEventListener('click', clickListener, false);
-                document.addEventListener('mousedown', mousedownListener, true);
-                window.addEventListener('click', clickListener, true);
-
-                // Alternative method: Hover + Keyboard to inspect element
-                let currentHoverElement = null;
-                hoverListener = function (e) {
-                    if (e.target.closest('#sbc-auto-ui') || e.target.id === 'sbc-reopen-btn') {
-                        return;
-                    }
-                    currentHoverElement = e.target;
-                };
-
-                keyListener = function (e) {
-                    // Press 'i' key to inspect hovered element
-                    if (e.key === 'i' || e.key === 'I') {
-                        if (currentHoverElement) {
-                            const el = currentHoverElement;
-                            log('═══════════════════════════');
-                            log('🔍 Element inspected (via hover+I):');
-                            log(`Tag: ${el.tagName}`);
-                            log(`ID: ${el.id || '(no id)'}`);
-                            log(`Class: ${el.className}`);
-                            log(`Text: ${el.textContent.trim().substring(0, 50)}`);
-                            log(`Title: ${el.title || '(no title)'}`);
-                            log(`Role: ${el.getAttribute('role') || '(no role)'}`);
-
-                            const dataAttrs = Object.keys(el.dataset);
-                            if (dataAttrs.length > 0) {
-                                log(`Data attrs: ${dataAttrs.join(', ')}`);
-                            } else {
-                                log('Data attrs: (none)');
-                            }
-
-                            if (el.parentElement) {
-                                log(`Parent tag: ${el.parentElement.tagName}`);
-                                log(`Parent class: ${el.parentElement.className || '(no class)'}`);
-                            }
-
-                            const inSquad = el.closest('.ut-squad-pitch-view, .ut-squad-builder-container, .ut-sbc-squad-overview');
-                            log(`In squad area: ${inSquad ? 'YES ✅' : 'NO ❌'}`);
-                            log('═══════════════════════════');
+                    // Add click listener to capture ALL clicks (including EA Web App)
+                    clickListener = function (e) {
+                        // Skip clicks on script UI to avoid spam
+                        if (e.target.closest('#sbc-auto-ui') || e.target.id === 'sbc-reopen-btn') {
+                            return;
                         }
+
+                        const el = e.target;
+
+                        // Log element details
+                        log('═══════════════════════════');
+                        log('🎯 Element clicked:');
+                        log(`Tag: ${el.tagName}`);
+                        log(`ID: ${el.id || '(no id)'}`);
+                        log(`Class: ${el.className}`);
+                        log(`Text: ${el.textContent.trim().substring(0, 50)}`);
+                        log(`Title: ${el.title || '(no title)'}`);
+                        log(`Role: ${el.getAttribute('role') || '(no role)'}`);
+
+                        // Data attributes
+                        const dataAttrs = Object.keys(el.dataset);
+                        if (dataAttrs.length > 0) {
+                            log(`Data attrs: ${dataAttrs.join(', ')}`);
+                        } else {
+                            log('Data attrs: (none)');
+                        }
+
+                        // Parent info
+                        if (el.parentElement) {
+                            log(`Parent tag: ${el.parentElement.tagName}`);
+                            log(`Parent class: ${el.parentElement.className || '(no class)'}`);
+                        }
+
+                        // Check if in squad area
+                        const inSquad = el.closest('.ut-squad-pitch-view, .ut-squad-builder-container, .ut-sbc-squad-overview');
+                        log(`In squad area: ${inSquad ? 'YES ✅' : 'NO ❌'}`);
+
+                        log('═══════════════════════════');
+                    };
+
+                    // Also track mousedown in case EA uses that instead of click
+                    mousedownListener = function (e) {
+                        // Skip clicks on script UI
+                        if (e.target.closest('#sbc-auto-ui') || e.target.id === 'sbc-reopen-btn') {
+                            return;
+                        }
+
+                        const el = e.target;
+                        log('💡 Mousedown on: ' + el.tagName + (el.className ? '.' + el.className.split(' ')[0] : ''));
+                    };
+
+                    // Add listeners with capture=true to catch ALL events
+                    // Use multiple phases to ensure we catch EA's events
+                    document.body.addEventListener('click', clickListener, true);
+                    document.body.addEventListener('click', clickListener, false);
+                    document.addEventListener('click', clickListener, true);
+                    document.addEventListener('click', clickListener, false);
+                    document.addEventListener('mousedown', mousedownListener, true);
+                    window.addEventListener('click', clickListener, true);
+
+                    // Alternative method: Hover + Keyboard to inspect element
+                    let currentHoverElement = null;
+                    hoverListener = function (e) {
+                        if (e.target.closest('#sbc-auto-ui') || e.target.id === 'sbc-reopen-btn') {
+                            return;
+                        }
+                        currentHoverElement = e.target;
+                    };
+
+                    keyListener = function (e) {
+                        // Press 'i' key to inspect hovered element
+                        if (e.key === 'i' || e.key === 'I') {
+                            if (currentHoverElement) {
+                                const el = currentHoverElement;
+                                log('═══════════════════════════');
+                                log('🔍 Element inspected (via hover+I):');
+                                log(`Tag: ${el.tagName}`);
+                                log(`ID: ${el.id || '(no id)'}`);
+                                log(`Class: ${el.className}`);
+                                log(`Text: ${el.textContent.trim().substring(0, 50)}`);
+                                log(`Title: ${el.title || '(no title)'}`);
+                                log(`Role: ${el.getAttribute('role') || '(no role)'}`);
+
+                                const dataAttrs = Object.keys(el.dataset);
+                                if (dataAttrs.length > 0) {
+                                    log(`Data attrs: ${dataAttrs.join(', ')}`);
+                                } else {
+                                    log('Data attrs: (none)');
+                                }
+
+                                if (el.parentElement) {
+                                    log(`Parent tag: ${el.parentElement.tagName}`);
+                                    log(`Parent class: ${el.parentElement.className || '(no class)'}`);
+                                }
+
+                                const inSquad = el.closest('.ut-squad-pitch-view, .ut-squad-builder-container, .ut-sbc-squad-overview');
+                                log(`In squad area: ${inSquad ? 'YES ✅' : 'NO ❌'}`);
+                                log('═══════════════════════════');
+                            }
+                        }
+                    };
+
+                    document.addEventListener('mouseover', hoverListener, true);
+                    document.addEventListener('keydown', keyListener, true);
+
+                    // Add a test to verify listener works
+                    setTimeout(() => {
+                        log('✅ Listeners attached successfully');
+                        log('');
+                        log('📋 طريقتان للتسجيل:');
+                        log('1️⃣ اضغط مباشرة على الزر');
+                        log('2️⃣ حوّم الماوس على الزر واضغط حرف I');
+                        log('');
+                        log('🧪 TEST: Click the yellow box below');
+
+                        // Add test element
+                        const testDiv = document.createElement('div');
+                        testDiv.textContent = '🧪 TEST ELEMENT - Click me or hover+I';
+                        testDiv.style.cssText = 'background: #fbbf24; color: #000; padding: 8px; margin: 5px 0; cursor: pointer; border-radius: 4px; font-weight: bold;';
+                        testDiv.setAttribute('data-test', 'true');
+                        document.getElementById('log-container').insertBefore(testDiv, document.getElementById('log-container').firstChild);
+                    }, 100);
+
+                } else {
+                    // Deactivate record mode
+                    btn.textContent = '🔍 وضع التسجيل: إيقاف';
+                    btn.classList.remove('active');
+                    log('⚪ وضع التسجيل متوقف');
+
+                    // Remove all listeners
+                    if (clickListener) {
+                        document.body.removeEventListener('click', clickListener, true);
+                        document.body.removeEventListener('click', clickListener, false);
+                        document.removeEventListener('click', clickListener, true);
+                        document.removeEventListener('click', clickListener, false);
+                        window.removeEventListener('click', clickListener, true);
+                        clickListener = null;
                     }
-                };
+                    if (mousedownListener) {
+                        document.removeEventListener('mousedown', mousedownListener, true);
+                        mousedownListener = null;
+                    }
+                    if (hoverListener) {
+                        document.removeEventListener('mouseover', hoverListener, true);
+                        hoverListener = null;
+                    }
+                    if (keyListener) {
+                        document.removeEventListener('keydown', keyListener, true);
+                        keyListener = null;
+                    }
 
-                document.addEventListener('mouseover', hoverListener, true);
-                document.addEventListener('keydown', keyListener, true);
-
-                // Add a test to verify listener works
-                setTimeout(() => {
-                    log('✅ Listeners attached successfully');
-                    log('');
-                    log('📋 طريقتان للتسجيل:');
-                    log('1️⃣ اضغط مباشرة على الزر');
-                    log('2️⃣ حوّم الماوس على الزر واضغط حرف I');
-                    log('');
-                    log('🧪 TEST: Click the yellow box below');
-
-                    // Add test element
-                    const testDiv = document.createElement('div');
-                    testDiv.textContent = '🧪 TEST ELEMENT - Click me or hover+I';
-                    testDiv.style.cssText = 'background: #fbbf24; color: #000; padding: 8px; margin: 5px 0; cursor: pointer; border-radius: 4px; font-weight: bold;';
-                    testDiv.setAttribute('data-test', 'true');
-                    document.getElementById('log-container').insertBefore(testDiv, document.getElementById('log-container').firstChild);
-                }, 100);
-
-            } else {
-                // Deactivate record mode
-                btn.textContent = '🔍 وضع التسجيل: إيقاف';
-                btn.classList.remove('active');
-                log('⚪ وضع التسجيل متوقف');
-
-                // Remove all listeners
-                if (clickListener) {
-                    document.body.removeEventListener('click', clickListener, true);
-                    document.body.removeEventListener('click', clickListener, false);
-                    document.removeEventListener('click', clickListener, true);
-                    document.removeEventListener('click', clickListener, false);
-                    window.removeEventListener('click', clickListener, true);
-                    clickListener = null;
+                    // Remove test element
+                    const testElement = document.querySelector('[data-test="true"]');
+                    if (testElement) {
+                        testElement.remove();
+                    }
                 }
-                if (mousedownListener) {
-                    document.removeEventListener('mousedown', mousedownListener, true);
-                    mousedownListener = null;
-                }
-                if (hoverListener) {
-                    document.removeEventListener('mouseover', hoverListener, true);
-                    hoverListener = null;
-                }
-                if (keyListener) {
-                    document.removeEventListener('keydown', keyListener, true);
-                    keyListener = null;
-                }
+            });
 
-                // Remove test element
-                const testElement = document.querySelector('[data-test="true"]');
-                if (testElement) {
-                    testElement.remove();
-                }
-            }
-        });
-
-        document.getElementById('minimize-btn').addEventListener('click', () => {
-            ui.classList.add('minimized');
-            // Show reopen button
-            if (!document.getElementById('sbc-reopen-btn')) {
-                const reopenBtn = document.createElement('div');
-                reopenBtn.id = 'sbc-reopen-btn';
-                reopenBtn.innerHTML = '🎯';
-                reopenBtn.style.cssText = `
+            document.getElementById('minimize-btn').addEventListener('click', () => {
+                ui.classList.add('minimized');
+                // Show reopen button
+                if (!document.getElementById('sbc-reopen-btn')) {
+                    const reopenBtn = document.createElement('div');
+                    reopenBtn.id = 'sbc-reopen-btn';
+                    reopenBtn.innerHTML = '🎯';
+                    reopenBtn.style.cssText = `
                     position: fixed;
                     top: 20px;
                     left: 20px;
@@ -1796,29 +1797,29 @@
                     z-index: 999999;
                     transition: all 0.3s;
                 `;
-                reopenBtn.addEventListener('mouseenter', () => {
-                    reopenBtn.style.transform = 'scale(1.1)';
-                });
-                reopenBtn.addEventListener('mouseleave', () => {
-                    reopenBtn.style.transform = 'scale(1)';
-                });
-                reopenBtn.addEventListener('click', () => {
-                    ui.classList.remove('minimized');
-                    reopenBtn.remove();
-                });
-                document.body.appendChild(reopenBtn);
-            }
-        });
+                    reopenBtn.addEventListener('mouseenter', () => {
+                        reopenBtn.style.transform = 'scale(1.1)';
+                    });
+                    reopenBtn.addEventListener('mouseleave', () => {
+                        reopenBtn.style.transform = 'scale(1)';
+                    });
+                    reopenBtn.addEventListener('click', () => {
+                        ui.classList.remove('minimized');
+                        reopenBtn.remove();
+                    });
+                    document.body.appendChild(reopenBtn);
+                }
+            });
 
-        document.getElementById('close-btn').addEventListener('click', () => {
-            stopScript();
-            ui.style.display = 'none';
-            // Show reopen button
-            if (!document.getElementById('sbc-reopen-btn')) {
-                const reopenBtn = document.createElement('div');
-                reopenBtn.id = 'sbc-reopen-btn';
-                reopenBtn.innerHTML = '🎯';
-                reopenBtn.style.cssText = `
+            document.getElementById('close-btn').addEventListener('click', () => {
+                stopScript();
+                ui.style.display = 'none';
+                // Show reopen button
+                if (!document.getElementById('sbc-reopen-btn')) {
+                    const reopenBtn = document.createElement('div');
+                    reopenBtn.id = 'sbc-reopen-btn';
+                    reopenBtn.innerHTML = '🎯';
+                    reopenBtn.style.cssText = `
                     position: fixed;
                     top: 20px;
                     left: 20px;
@@ -1836,50 +1837,50 @@
                     z-index: 999999;
                     transition: all 0.3s;
                 `;
-                reopenBtn.addEventListener('mouseenter', () => {
-                    reopenBtn.style.transform = 'scale(1.1)';
-                });
-                reopenBtn.addEventListener('mouseleave', () => {
-                    reopenBtn.style.transform = 'scale(1)';
-                });
-                reopenBtn.addEventListener('click', () => {
-                    ui.style.display = 'block';
-                    reopenBtn.remove();
-                });
-                document.body.appendChild(reopenBtn);
-            }
-        });
-    }
+                    reopenBtn.addEventListener('mouseenter', () => {
+                        reopenBtn.style.transform = 'scale(1.1)';
+                    });
+                    reopenBtn.addEventListener('mouseleave', () => {
+                        reopenBtn.style.transform = 'scale(1)';
+                    });
+                    reopenBtn.addEventListener('click', () => {
+                        ui.style.display = 'block';
+                        reopenBtn.remove();
+                    });
+                    document.body.appendChild(reopenBtn);
+                }
+            });
+        }
 
-    function updateUI() {
-        document.getElementById('sbcs-count').textContent = sbcsCompleted;
-        document.getElementById('packs-count').textContent = packsOpened;
-        document.getElementById('golds-count').textContent = goldsSentToStorage;
-        document.getElementById('sells-count').textContent = quickSells;
-    }
+        function updateUI() {
+            document.getElementById('sbcs-count').textContent = sbcsCompleted;
+            document.getElementById('packs-count').textContent = packsOpened;
+            document.getElementById('golds-count').textContent = goldsSentToStorage;
+            document.getElementById('sells-count').textContent = quickSells;
+        }
 
-    function log(message) {
-        console.log(message);
+        function log(message) {
+            console.log(message);
 
-        const logContainer = document.getElementById('log-container');
-        if (logContainer) {
-            const entry = document.createElement('div');
-            entry.className = 'log-entry';
-            entry.textContent = `${new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} ${message}`;
-            logContainer.appendChild(entry);
-            logContainer.scrollTop = logContainer.scrollHeight;
+            const logContainer = document.getElementById('log-container');
+            if (logContainer) {
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                entry.textContent = `${new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} ${message}`;
+                logContainer.appendChild(entry);
+                logContainer.scrollTop = logContainer.scrollHeight;
 
-            // Keep only last 50 entries
-            while (logContainer.children.length > 50) {
-                logContainer.removeChild(logContainer.firstChild);
+                // Keep only last 50 entries
+                while (logContainer.children.length > 50) {
+                    logContainer.removeChild(logContainer.firstChild);
+                }
             }
         }
-    }
 
-    // ========== تهيئة ==========
-    console.log('✅ Paletools SBC Auto Completer loaded!');
-    createUI();
-    log('✅ تم تحميل السكربت بنجاح');
-    log('💡 اضغط "تحميل قائمة SBCs" للبدء');
+        // ========== تهيئة ==========
+        console.log('✅ Paletools SBC Auto Completer loaded!');
+        createUI();
+        log('✅ تم تحميل السكربت بنجاح');
+        log('💡 اضغط "تحميل قائمة SBCs" للبدء');
 
-})();
+    }) ();
