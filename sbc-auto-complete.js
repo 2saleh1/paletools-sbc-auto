@@ -488,7 +488,7 @@
 
             log('⏳ انتظار اكتمال البناء (مراقبة مستمرة حتى 60ث)...');
 
-            // Wait for Smart Builder to complete by checking for Submit button
+            // Wait for Smart Builder to complete by checking for Submit button OR back button (iOS)
             // Check every 500ms (faster detection) for up to 60 seconds
             let buildComplete = false;
             let checksCount = 0;
@@ -498,7 +498,7 @@
                 await wait(500);
                 checksCount++;
 
-                // Check if Submit/Exchange button appeared (means build is complete)
+                // FIRST: Check if Submit/Exchange button appeared (PC/Web - means build is complete)
                 const submitSelectors = [
                     'button.btn-standard.call-to-action',
                     'button.call-to-action',
@@ -520,59 +520,7 @@
                         if (!isDisabled) {
                             buildComplete = true;
                             const totalSeconds = Math.round(checksCount * 0.5);
-                            log(`✅ تم اكتمال Smart Builder بعد ${totalSeconds} ثانية`);
-
-                            // iOS: Click back button to return to main SBC view before Submit
-                            log('🔍 البحث عن زر الرجوع (iOS)...');
-                            
-                            // Search for back button more broadly
-                            const backButton = document.querySelector('.ut-navigation-button-control') ||
-                                document.querySelector('button.ut-navigation-button-control') ||
-                                document.querySelector('[class*="navigation-button"]');
-                            
-                            if (backButton) {
-                                log('✅ تم العثور على زر الرجوع');
-                                log(`   - Tag: ${backButton.tagName}`);
-                                log(`   - Class: ${backButton.className}`);
-                                
-                                backButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                await wait(200);
-                                
-                                // Highlight
-                                backButton.style.outline = '3px solid #3b82f6';
-                                await wait(150);
-                                backButton.style.outline = '';
-                                
-                                // Click using multiple methods
-                                log('🖱️ الضغط على زر الرجوع...');
-                                backButton.click();
-                                await wait(50);
-                                backButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-                                await wait(50);
-                                backButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-                                await wait(30);
-                                backButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-                                
-                                log('⏳ انتظار عودة الصفحة...');
-                                
-                                // Poll for Submit button appearance (instead of fixed wait)
-                                let submitAppeared = false;
-                                for (let i = 0; i < 20; i++) { // 20 * 150ms = 3 seconds max
-                                    await wait(150);
-                                    const testSubmit = document.querySelector('button.btn-standard.call-to-action, button.call-to-action');
-                                    if (testSubmit && testSubmit.offsetParent !== null) {
-                                        submitAppeared = true;
-                                        log('✅ تم الرجوع إلى عرض SBC الرئيسي - ظهر زر Submit');
-                                        break;
-                                    }
-                                }
-                                
-                                if (!submitAppeared) {
-                                    log('⚠️ لم يظهر زر Submit بعد - المتابعة على أي حال...');
-                                }
-                            } else {
-                                log('⚠️ لم يتم العثور على زر الرجوع - قد يكون PC/Web');
-                            }
+                            log(`✅ تم اكتمال Smart Builder بعد ${totalSeconds} ثانية (PC/Web)`);
 
                             // Now scroll to Submit button
                             submitBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -580,6 +528,66 @@
 
                             break;
                         }
+                    }
+                }
+
+                // SECOND: If Submit not found (iOS case), check for back button after reasonable time
+                if (!buildComplete && checksCount >= 10) { // After 5 seconds, start checking for iOS back button
+                    const backButton = document.querySelector('.ut-navigation-button-control') ||
+                        document.querySelector('button.ut-navigation-button-control') ||
+                        document.querySelector('[class*="navigation-button"]');
+                    
+                    if (backButton) {
+                        buildComplete = true;
+                        const totalSeconds = Math.round(checksCount * 0.5);
+                        log(`✅ تم اكتمال Smart Builder بعد ${totalSeconds} ثانية (iOS - detected via back button)`);
+
+                        // iOS: Click back button to return to main SBC view before Submit
+                        log('🔍 تم العثور على زر الرجوع (iOS)');
+                        log(`   - Tag: ${backButton.tagName}`);
+                        log(`   - Class: ${backButton.className}`);
+                        
+                        backButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        await wait(200);
+                        
+                        // Highlight
+                        backButton.style.outline = '3px solid #3b82f6';
+                        await wait(150);
+                        backButton.style.outline = '';
+                        
+                        // Click using multiple methods
+                        log('🖱️ الضغط على زر الرجوع...');
+                        backButton.click();
+                        await wait(50);
+                        backButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                        await wait(50);
+                        backButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                        await wait(30);
+                        backButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+                        
+                        log('⏳ انتظار ظهور زر Submit بعد الرجوع...');
+                        
+                        // Poll for Submit button appearance (instead of fixed wait)
+                        let submitAppeared = false;
+                        for (let j = 0; j < 20; j++) { // 20 * 150ms = 3 seconds max
+                            await wait(150);
+                            const testSubmit = document.querySelector('button.btn-standard.call-to-action, button.call-to-action');
+                            if (testSubmit && testSubmit.offsetParent !== null) {
+                                submitAppeared = true;
+                                log('✅ تم الرجوع إلى عرض SBC الرئيسي - ظهر زر Submit');
+                                
+                                // Scroll to Submit
+                                testSubmit.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                await wait(200);
+                                break;
+                            }
+                        }
+                        
+                        if (!submitAppeared) {
+                            log('⚠️ لم يظهر زر Submit بعد الرجوع - المتابعة على أي حال...');
+                        }
+
+                        break;
                     }
                 }
 
