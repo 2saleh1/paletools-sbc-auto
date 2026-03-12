@@ -542,7 +542,7 @@
                     const allSlots = document.querySelectorAll('.ut-squad-slot-pedestal');
                     const allItems = document.querySelectorAll('.ut-item-loaded, .player, .entityContainer, [class*="item"]');
                     const allButtons = document.querySelectorAll('button');
-                    
+
                     // Debug logging every 10 checks
                     if (checksCount % 10 === 0) {
                         log(`⚠️ iOS Check ${checksCount}: Slots=${allSlots.length}, Items=${allItems.length}, Buttons=${allButtons.length}`);
@@ -554,7 +554,7 @@
                         const backButton = document.querySelector('button.ut-navigation-button-control') ||
                             document.querySelector('.ut-navigation-button-control') ||
                             document.querySelector('[class*="navigation-button"]');
-                        
+
                         if (backButton && backButton.offsetParent !== null) {
                             buildComplete = true;
                             const totalSeconds = Math.round(checksCount * 0.5);
@@ -565,25 +565,56 @@
                             log(`   - Tag: ${backButton.tagName}`);
                             log(`   - Class: ${backButton.className}`);
 
+                            // CRITICAL FIX: Hide script UI to prevent blocking the back button
+                            const scriptUI = document.getElementById('sbc-auto-ui');
+                            if (scriptUI) {
+                                scriptUI.style.display = 'none';
+                                log('⚠️ إخفاء واجهة السكربت مؤقتاً');
+                            }
+
                             backButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
                             await wait(200);
 
+                            // Raise z-index to ensure button is clickable
+                            const originalZIndex = backButton.style.zIndex;
+                            backButton.style.zIndex = '999999';
+                            backButton.style.pointerEvents = 'auto';
+
                             // Highlight
-                            backButton.style.outline = '3px solid #3b82f6';
+                            backButton.style.outline = '5px solid #3b82f6';
                             await wait(150);
                             backButton.style.outline = '';
 
-                            // Click using multiple methods
-                            log('🖱️ الضغط على زر الرجوع...');
+                            // Click using multiple methods with longer delays
+                            log('🖱️ الضغط على زر الرجوع (محاولة 1)...');
                             backButton.click();
-                            await wait(50);
+                            await wait(100);
+                            
+                            log('🖱️ الضغط على زر الرجوع (محاولة 2)...');
                             backButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-                            await wait(50);
+                            await wait(100);
+                            
+                            log('🖱️ الضغط على زر الرجوع (محاولة 3)...');
                             backButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-                            await wait(30);
+                            await wait(50);
                             backButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+                            await wait(100);
+                            
+                            log('🖱️ الضغط على زر الرجوع (محاولة 4)...');
+                            backButton.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, cancelable: true }));
+                            await wait(50);
+                            backButton.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, cancelable: true }));
+                            
+                            // Restore z-index
+                            backButton.style.zIndex = originalZIndex;
 
                             log('⏳ انتظار ظهور زر Submit بعد الرجوع...');
+                            
+                            // Restore script UI
+                            if (scriptUI) {
+                                scriptUI.style.display = '';
+                                log('✅ إعادة إظهار واجهة السكربت');
+                            }
 
                             // Poll for Submit button appearance (instead of fixed wait)
                             let submitAppeared = false;
