@@ -104,13 +104,29 @@
         let index = sbcList.findIndex(sbc => sbc.name.trim().toLowerCase() === normalizedTarget);
         if (index >= 0) return index;
 
-        // Fallback: partial match (helps when EA adds extra suffixes)
-        index = sbcList.findIndex(sbc => {
-            const name = sbc.name.trim().toLowerCase();
-            return name.includes(normalizedTarget) || normalizedTarget.includes(name);
-        });
+        // Do NOT fallback to partial matching to avoid opening wrong SBC.
+        return -1;
+    }
 
-        return index;
+    async function waitForRewardsToClose(timeout = 6000) {
+        const startTime = Date.now();
+        while (Date.now() - startTime < timeout) {
+            const rewardStillVisible = document.querySelector('.ut-pack-tile, .ut-tile-pack, .pack-item, .ut-reward-item, .ut-store-pack-details-view');
+            const claimStillVisible = findElementByText('Claim Rewards', 'button') || findElementByText('Claim', 'button');
+
+            const rewardVisible = rewardStillVisible && rewardStillVisible.offsetParent !== null;
+            const claimVisible = claimStillVisible && claimStillVisible.offsetParent !== null;
+
+            if (!rewardVisible && !claimVisible) {
+                return true;
+            }
+
+            // Try skipping animations/screens while waiting
+            document.body.click();
+            await wait(150);
+        }
+
+        return false;
     }
 
     // ========== التنقل إلى SBC ==========
@@ -972,6 +988,12 @@
                 document.body.click();
             }
 
+            const rewardsClosed = await waitForRewardsToClose();
+            if (!rewardsClosed) {
+                log('❌ لم يتم إغلاق شاشة المكافآت بعد الضغط على البكج');
+                return false;
+            }
+
             log('✅ تم استلام المكافآت');
             return true;
         }
@@ -1067,6 +1089,12 @@
 
                 // Click anywhere on screen to skip animations
                 document.body.click();
+            }
+
+            const rewardsClosed = await waitForRewardsToClose();
+            if (!rewardsClosed) {
+                log('❌ لم يتم إغلاق شاشة المكافآت بعد Claim Rewards');
+                return false;
             }
 
             log('✅ تم استلام المكافآت');
