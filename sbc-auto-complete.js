@@ -72,6 +72,24 @@
         return null;
     }
 
+    function resolveSBCIndexByName(targetName) {
+        if (!targetName || !sbcList.length) return -1;
+
+        const normalizedTarget = targetName.trim().toLowerCase();
+
+        // Exact match first
+        let index = sbcList.findIndex(sbc => sbc.name.trim().toLowerCase() === normalizedTarget);
+        if (index >= 0) return index;
+
+        // Fallback: partial match (helps when EA adds extra suffixes)
+        index = sbcList.findIndex(sbc => {
+            const name = sbc.name.trim().toLowerCase();
+            return name.includes(normalizedTarget) || normalizedTarget.includes(name);
+        });
+
+        return index;
+    }
+
     // ========== التنقل إلى SBC ==========
     async function goToSBCSection() {
         log('📍 الانتقال إلى قسم SBC...');
@@ -101,7 +119,7 @@
     async function getSBCList() {
         log('📋 Loading SBC list...');
 
-        await wait(1500);
+        await wait(900);
 
         // More precise selector - avoid buttons and non-SBC elements
         let sbcTiles = document.querySelectorAll('.ut-sbc-set-tile-view:not(.sbc-set--buttons)');
@@ -275,7 +293,7 @@
 
         // Scroll to element so user can see it
         currentSBC.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        await wait(500);
+        await wait(250);
 
         // Highlight the element briefly
         currentSBC.element.style.outline = '3px solid #3b82f6';
@@ -361,7 +379,7 @@
 
                     log('✅ تم فتح التحدي');
                     log('⏳ انتظار تحميل واجهة التحدي...');
-                    await wait(300);
+                    await wait(200);
                     break;
                 }
             }
@@ -802,7 +820,7 @@
 
         // FIRST: Look for reward pack/item to click (SBC rewards appear as packs)
         log('🔍 البحث عن جائزة البكج...');
-        
+
         const packSelectors = [
             '.ut-pack-tile',
             '.ut-tile-pack',
@@ -813,7 +831,7 @@
             '.ut-store-pack-details-view',
             '.ut-item-view'
         ];
-        
+
         let rewardPack = null;
         for (const selector of packSelectors) {
             const pack = document.querySelector(selector);
@@ -823,11 +841,11 @@
                 break;
             }
         }
-        
+
         if (rewardPack) {
             // ========== قراءة اسم البكج وتسجيله ==========
             let packName = 'Unknown Pack';
-            
+
             // Try to find pack name from various elements
             const nameElements = [
                 rewardPack.querySelector('.ut-pack-name'),
@@ -837,14 +855,14 @@
                 rewardPack.querySelector('[class*="name"]'),
                 rewardPack.querySelector('[class*="title"]')
             ];
-            
+
             for (const elem of nameElements) {
                 if (elem && elem.textContent.trim()) {
                     packName = elem.textContent.trim();
                     break;
                 }
             }
-            
+
             // If no specific element found, try pack element text
             if (packName === 'Unknown Pack' && rewardPack.textContent) {
                 const text = rewardPack.textContent.trim();
@@ -852,21 +870,21 @@
                     packName = text;
                 }
             }
-            
+
             // Log pack info with SBC name
             log(`📦 جائزة SBC "${currentSBC?.name || 'Unknown'}": ${packName}`);
-            
+
             log('🎁 الضغط على جائزة البكج...');
-            
+
             // Scroll to pack
             rewardPack.scrollIntoView({ behavior: 'smooth', block: 'center' });
             await wait(200);
-            
+
             // Highlight pack
             rewardPack.style.outline = '3px solid #fbbf24';
             await wait(150);
             rewardPack.style.outline = '';
-            
+
             // Click pack using multiple methods
             rewardPack.click();
             await wait(50);
@@ -875,17 +893,17 @@
             rewardPack.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
             await wait(30);
             rewardPack.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-            
+
             log('✅ تم الضغط على البكج');
             await wait(1000); // Wait for pack to open
-            
+
             // Skip pack opening animation (click anywhere or press space)
             log('⏩ تخطي أنيميشن البكج...');
             document.body.click();
             await wait(100);
             document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
             await wait(500);
-            
+
             // Click through any OK/Continue buttons after pack
             for (let i = 0; i < 3; i++) {
                 await wait(300);
@@ -893,7 +911,7 @@
                     findElementByText('OK', 'button') ||
                     findElementByText('Continue', 'button') ||
                     findElementByText('متابعة', 'button');
-                
+
                 if (okBtn) {
                     log('🖱️ الضغط على زر OK/Continue...');
                     okBtn.click();
@@ -902,7 +920,7 @@
                 }
                 document.body.click();
             }
-            
+
             log('✅ تم استلام المكافآت');
             return true;
         }
@@ -1192,23 +1210,41 @@
     }
 
     // ========== العملية الكاملة ==========
-    async function completeSBCCycle(sbcIndex) {
+    async function completeSBCCycle(targetSBCName) {
         if (!isRunning) return;
 
         log(`\n🔄 بدء دورة SBC ${sbcsCompleted + 1}...\n`);
 
         // 1. Go to SBC section
-        await goToSBCSection();
-
-        // 2. Get SBC list if not loaded
-        if (sbcList.length === 0) {
-            await getSBCList();
+        const inSBC = await goToSBCSection();
+        if (!inSBC) {
+            log('❌ فشل الانتقال إلى واجهة SBC');
+            return false;
         }
 
-        // 3. Select and open SBC
-        await selectAndOpenSBC(sbcIndex);
+        // 2. ALWAYS refresh SBC list each cycle to avoid stale DOM references
+        await getSBCList();
+        if (sbcList.length === 0) {
+            log('❌ لا توجد SBCs متاحة حالياً');
+            return false;
+        }
 
-        // 4. Use Smart Build
+        // 3. Resolve target by name on fresh list
+        const resolvedIndex = resolveSBCIndexByName(targetSBCName);
+        if (resolvedIndex < 0) {
+            log(`❌ لم يتم العثور على SBC المطلوب: ${targetSBCName}`);
+            log('💡 أعد تحميل قائمة SBCs واختر التحدي مرة أخرى');
+            return false;
+        }
+
+        // 4. Select and open SBC
+        const opened = await selectAndOpenSBC(resolvedIndex);
+        if (!opened) {
+            log('❌ فشل فتح SBC المختار');
+            return false;
+        }
+
+        // 5. Use Smart Build
         const buildSuccess = await usePaletoolsSmartBuild();
         if (!buildSuccess) {
             log('⚠️ Smart Builder لم يكتمل في الوقت المحدد');
@@ -1216,17 +1252,20 @@
             // Don't return false - try to submit anyway
         }
 
-        // 5. Submit SBC
+        // 6. Submit SBC
         const submitted = await submitSBC();
         if (!submitted) {
             log('❌ فشل تقديم SBC');
             return false;
         }
 
-        // 6. Claim rewards
-        await claimRewards();
+        // 7. Claim rewards
+        const claimed = await claimRewards();
+        if (!claimed) {
+            log('⚠️ لم يتم تأكيد استلام المكافآت');
+        }
 
-        // 7. Open packs
+        // 8. Open packs
         if (CONFIG.PACKS_PER_SBC > 0) {
             await openPacks(CONFIG.PACKS_PER_SBC);
         }
@@ -1236,7 +1275,7 @@
     }
 
     // ========== البدء ==========
-    async function startAutoSBC(sbcIndex = 0, cycles = 1) {
+    async function startAutoSBC(targetSBCName, cycles = 1) {
         if (isRunning) {
             log('⚠️ السكربت يعمل بالفعل!');
             return;
@@ -1249,9 +1288,23 @@
         for (let i = 0; i < cycles; i++) {
             if (!isRunning) break;
 
-            const success = await completeSBCCycle(sbcIndex);
+            let success = false;
+
+            // Self-heal: retry the cycle once if first attempt fails
+            for (let attempt = 1; attempt <= 2; attempt++) {
+                if (!isRunning) break;
+
+                if (attempt > 1) {
+                    log(`🔄 إعادة محاولة الدورة الحالية (${attempt}/2)...`);
+                    await wait(500);
+                }
+
+                success = await completeSBCCycle(targetSBCName);
+                if (success) break;
+            }
+
             if (!success) {
-                log('❌ حدث خطأ، إيقاف السكربت');
+                log('❌ فشلت الدورة بعد إعادة المحاولة - إيقاف السكربت');
                 break;
             }
 
@@ -1651,12 +1704,12 @@
             select.innerHTML = '';
 
             if (sbcList.length === 0) {
-                select.innerHTML = '<option value="-1">-- لا توجد SBCs متاحة --</option>';
+                select.innerHTML = '<option value="__none__">-- لا توجد SBCs متاحة --</option>';
                 log('❌ لم يتم العثور على SBCs');
             } else {
-                sbcList.forEach((sbc, index) => {
+                sbcList.forEach((sbc) => {
                     const option = document.createElement('option');
-                    option.value = index;
+                    option.value = sbc.name;
                     option.textContent = sbc.name;
                     select.appendChild(option);
                 });
@@ -1665,10 +1718,10 @@
         });
 
         document.getElementById('start-btn').addEventListener('click', () => {
-            const sbcIndex = parseInt(document.getElementById('sbc-select').value);
+            const sbcName = document.getElementById('sbc-select').value;
             const cycles = parseInt(document.getElementById('cycles-input').value);
 
-            if (sbcIndex < 0) {
+            if (!sbcName || sbcName === '-1' || sbcName === '__none__') {
                 alert('⚠️ اختر SBC من القائمة أولاً!');
                 return;
             }
@@ -1682,7 +1735,7 @@
             document.getElementById('stop-btn').style.display = 'block';
             document.getElementById('refresh-btn').disabled = true;
 
-            startAutoSBC(sbcIndex, cycles);
+            startAutoSBC(sbcName, cycles);
         });
 
         document.getElementById('stop-btn').addEventListener('click', () => {
