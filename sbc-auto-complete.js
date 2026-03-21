@@ -72,6 +72,29 @@
         return null;
     }
 
+    function normalizeDigits(input) {
+        if (input == null) return '';
+        const arabicIndic = '٠١٢٣٤٥٦٧٨٩';
+        const easternArabicIndic = '۰۱۲۳۴۵۶۷۸۹';
+        return String(input)
+            .split('')
+            .map(ch => {
+                const i1 = arabicIndic.indexOf(ch);
+                if (i1 >= 0) return String(i1);
+                const i2 = easternArabicIndic.indexOf(ch);
+                if (i2 >= 0) return String(i2);
+                return ch;
+            })
+            .join('');
+    }
+
+    function parseCyclesValue(rawValue) {
+        const normalized = normalizeDigits(rawValue).trim();
+        const parsed = Number.parseInt(normalized, 10);
+        if (Number.isNaN(parsed) || parsed < 1) return 1;
+        return Math.min(parsed, 100);
+    }
+
     function resolveSBCIndexByName(targetName) {
         if (!targetName || !sbcList.length) return -1;
 
@@ -816,7 +839,25 @@
         log('🎁 استلام المكافآت...');
 
         log('⏳ انتظار ظهور شاشة المكافآت...');
-        await wait(800);
+        await wait(500);
+
+        // Wait until reward UI is really visible to avoid clicking unrelated elements
+        let rewardUIReady = false;
+        for (let i = 0; i < 30; i++) { // 30 * 200ms = 6 seconds
+            const rewardRoot = document.querySelector('.ut-pack-tile, .ut-tile-pack, .pack-item, .ut-reward-item, .ut-store-pack-details-view');
+            const claimBtnVisible = findElementByText('Claim Rewards', 'button') || findElementByText('Claim', 'button');
+
+            if ((rewardRoot && rewardRoot.offsetParent !== null) || (claimBtnVisible && claimBtnVisible.offsetParent !== null)) {
+                rewardUIReady = true;
+                break;
+            }
+            await wait(200);
+        }
+
+        if (!rewardUIReady) {
+            log('❌ لم تظهر شاشة المكافآت بوضوح');
+            return false;
+        }
 
         // FIRST: Look for reward pack/item to click (SBC rewards appear as packs)
         log('🔍 البحث عن جائزة البكج...');
@@ -826,16 +867,22 @@
             '.ut-tile-pack',
             '.pack-item',
             '.ut-reward-item',
-            '[class*="pack"]',
-            '[class*="reward"]',
             '.ut-store-pack-details-view',
             '.ut-item-view'
         ];
 
         let rewardPack = null;
         for (const selector of packSelectors) {
-            const pack = document.querySelector(selector);
-            if (pack && pack.offsetParent !== null) {
+            const candidates = Array.from(document.querySelectorAll(selector))
+                .filter(el => el && el.offsetParent !== null && !el.closest('#sbc-auto-ui'));
+
+            // Prefer candidates that actually look like reward tiles
+            const pack = candidates.find(el => {
+                const text = (el.textContent || '').trim().toLowerCase();
+                return text.length > 0 && text !== 'for you' && !text.includes('squad battles');
+            }) || candidates[0];
+
+            if (pack) {
                 rewardPack = pack;
                 log(`✅ تم العثور على جائزة البكج: ${selector}`);
                 break;
@@ -869,6 +916,10 @@
                 if (text && text.length < 100) { // Reasonable pack name length
                     packName = text;
                 }
+            }
+
+            if (packName.toLowerCase() === 'for you') {
+                packName = 'Unknown Pack';
             }
 
             // Log pack info with SBC name
@@ -1021,13 +1072,8 @@
             log('✅ تم استلام المكافآت');
             return true;
         } else {
-            log('⚠️ لم يتم العثور على زر Claim Rewards - قد تكون المكافآت already claimed');
-            // Click body few times to skip any dialogs
-            for (let i = 0; i < 3; i++) {
-                document.body.click();
-                await wait(300);
-            }
-            return true;
+            log('❌ لم يتم العثور على البكج أو زر Claim Rewards');
+            return false;
         }
     }
 
@@ -1262,7 +1308,8 @@
         // 7. Claim rewards
         const claimed = await claimRewards();
         if (!claimed) {
-            log('⚠️ لم يتم تأكيد استلام المكافآت');
+            log('❌ فشل استلام المكافآت - لن ننتقل لتحدي آخر');
+            return false;
         }
 
         // 8. Open packs
@@ -1281,12 +1328,16 @@
             return;
         }
 
+        const totalCycles = Number.isFinite(cycles) ? cycles : 1;
+
         isRunning = true;
-        log('🚀 بدء SBC Auto Completer...\n');
+        log(`🚀 بدء SBC Auto Completer... (التكرارات: ${totalCycles})\n`);
         updateUI();
 
-        for (let i = 0; i < cycles; i++) {
+        for (let i = 0; i < totalCycles; i++) {
             if (!isRunning) break;
+
+            log(`🔁 دورة ${i + 1}/${totalCycles}`);
 
             let success = false;
 
@@ -1315,6 +1366,10 @@
     }
 
     function stopScript() {
+        if (!isRunning) {
+            return;
+        }
+
         isRunning = false;
         log('\n⏸️ تم إيقاف السكربت');
         updateUI();
@@ -1719,7 +1774,8 @@
 
         document.getElementById('start-btn').addEventListener('click', () => {
             const sbcName = document.getElementById('sbc-select').value;
-            const cycles = parseInt(document.getElementById('cycles-input').value);
+            const cyclesRaw = document.getElementById('cycles-input').value;
+            const cycles = parseCyclesValue(cyclesRaw);
 
             if (!sbcName || sbcName === '-1' || sbcName === '__none__') {
                 alert('⚠️ اختر SBC من القائمة أولاً!');
