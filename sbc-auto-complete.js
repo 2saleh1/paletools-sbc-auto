@@ -1194,6 +1194,74 @@
         return true;
     }
 
+    function isSBCChallengeOpen() {
+        return !!document.querySelector('.ut-squad-builder-container, .ut-squad-pitch-view, .ut-sbc-squad-overview');
+    }
+
+    function detectCurrentOpenedSBCName() {
+        const selectors = [
+            '.ut-sbc-challenge-details .title',
+            '.ut-sbc-challenge-details h1',
+            '.ut-sbc-challenge-details h2',
+            '.ut-sbc-header-view .title',
+            '.ut-sbc-challenge-title-view .title',
+            '.ut-sbc-set-header-view .title',
+            '.ut-sbc-set-header .title',
+            '.ut-navigation-breadcrumb .title'
+        ];
+
+        for (const selector of selectors) {
+            const el = document.querySelector(selector);
+            const text = (el?.textContent || '').trim();
+            if (text && text.length > 2 && !/^submit|exchange$/i.test(text)) {
+                return text;
+            }
+        }
+
+        return currentSBC?.name || '';
+    }
+
+    async function completeOpenedChallengeCycle() {
+        if (!isRunning) return false;
+
+        log(`\n🔄 بدء دورة من التحدي المفتوح...\n`);
+
+        if (!isSBCChallengeOpen()) {
+            log('❌ لا يوجد تحدي SBC مفتوح حالياً');
+            log('💡 افتح التحدي المطلوب أولاً ثم اضغط "بدء من التحدي المفتوح"');
+            return false;
+        }
+
+        const detectedName = detectCurrentOpenedSBCName();
+        currentSBC = { name: detectedName || 'SBC الحالي' };
+        if (detectedName) {
+            log(`✅ تم التعرف على التحدي المفتوح: ${detectedName}`);
+        } else {
+            log('⚠️ لم يتم التعرف على الاسم، سيتم التنفيذ على التحدي المفتوح الحالي');
+        }
+
+        const buildSuccess = await usePaletoolsSmartBuild();
+        if (!buildSuccess) {
+            log('⚠️ Smart Builder لم يكتمل في الوقت المحدد');
+            log('🔄 محاولة الإرسال على أي حال...');
+        }
+
+        const submitted = await submitSBC();
+        if (!submitted) {
+            log('❌ فشل تقديم SBC');
+            return false;
+        }
+
+        const claimed = await claimRewards();
+        if (!claimed) {
+            log('❌ فشل استلام المكافآت');
+            return false;
+        }
+
+        log('✅ تم إكمال الدورة من التحدي المفتوح بنجاح');
+        return true;
+    }
+
     // ========== العملية الكاملة ==========
     async function completeSBCCycle(targetSBCName) {
         if (!isRunning) return;
@@ -1286,6 +1354,48 @@
         stopScript();
     }
 
+    async function startFromOpenedSBC(cycles = 1) {
+        if (isRunning) {
+            log('⚠️ السكربت يعمل بالفعل!');
+            return;
+        }
+
+        const totalCycles = Number.isFinite(cycles) ? cycles : 1;
+
+        isRunning = true;
+        log(`🚀 بدء من التحدي المفتوح... (التكرارات: ${totalCycles})\n`);
+        updateUI();
+
+        for (let i = 0; i < totalCycles; i++) {
+            if (!isRunning) break;
+
+            log(`🔁 دورة ${i + 1}/${totalCycles}`);
+
+            let success = false;
+
+            if (i === 0) {
+                success = await completeOpenedChallengeCycle();
+            } else {
+                const knownName = currentSBC?.name && currentSBC.name !== 'SBC الحالي';
+                if (!knownName) {
+                    log('⚠️ لا يمكن إكمال التكرارات تلقائياً بدون اسم واضح للتحدي');
+                    log('💡 للمتابعة: اختر التحدي من القائمة أو اجعل التكرارات = 1');
+                    break;
+                }
+                success = await completeSBCCycle(currentSBC.name);
+            }
+
+            if (!success) {
+                log('❌ فشلت الدورة الحالية - إيقاف السكربت');
+                break;
+            }
+
+            await wait(CONFIG.WAIT_TIME);
+        }
+
+        stopScript();
+    }
+
     function stopScript() {
         const wasRunning = isRunning;
         isRunning = false;
@@ -1295,11 +1405,15 @@
         const stopBtn = document.getElementById('stop-btn');
         const refreshBtn = document.getElementById('refresh-btn');
         const searchInput = document.getElementById('sbc-search');
+        const selectInput = document.getElementById('sbc-select');
+        const startCurrentBtn = document.getElementById('start-current-btn');
 
         if (startBtn) startBtn.style.display = 'block';
         if (stopBtn) stopBtn.style.display = 'none';
         if (refreshBtn) refreshBtn.disabled = false;
         if (searchInput) searchInput.disabled = false;
+        if (selectInput) selectInput.disabled = false;
+        if (startCurrentBtn) startCurrentBtn.disabled = false;
 
         if (wasRunning) {
             log('\n⏸️ تم إيقاف السكربت');
@@ -1602,6 +1716,7 @@
             
             <button class="btn-refresh" id="refresh-btn">تحميل القائمة</button>
             <button class="btn-start" id="start-btn">بدء</button>
+            <button class="btn-refresh" id="start-current-btn">بدء من التحدي المفتوح</button>
             <button class="btn-stop" id="stop-btn" style="display:none">إيقاف</button>
             <button class="btn-minimize" id="minimize-btn">تصغير</button>
             <button class="btn-close" id="close-btn">إغلاق</button>
@@ -1695,8 +1810,24 @@
             document.getElementById('stop-btn').style.display = 'block';
             document.getElementById('refresh-btn').disabled = true;
             document.getElementById('sbc-search').disabled = true;
+            document.getElementById('sbc-select').disabled = true;
+            document.getElementById('start-current-btn').disabled = true;
 
             startAutoSBC(sbcName, cycles);
+        });
+
+        document.getElementById('start-current-btn').addEventListener('click', () => {
+            const cyclesRaw = document.getElementById('cycles-input').value;
+            const cycles = parseCyclesValue(cyclesRaw);
+
+            document.getElementById('start-btn').style.display = 'none';
+            document.getElementById('stop-btn').style.display = 'block';
+            document.getElementById('refresh-btn').disabled = true;
+            document.getElementById('sbc-search').disabled = true;
+            document.getElementById('sbc-select').disabled = true;
+            document.getElementById('start-current-btn').disabled = true;
+
+            startFromOpenedSBC(cycles);
         });
 
         document.getElementById('stop-btn').addEventListener('click', () => {
