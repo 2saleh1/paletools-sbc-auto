@@ -442,7 +442,7 @@
             <p>Drag the link below to your bookmarks bar and click it when EA FC Web App is loaded</p>
 
             <div class="bookmark-link-container">
-                <a href="javascript:(function(){if(window.sbcAutoLoaded){alert('السكربت محمل بالفعل!');return;}fetch('https://raw.githubusercontent.com/2saleh1/paletools-sbc-auto/main/sbc-auto-complete.js').then(r=>r.text()).then(code=>{eval(code);window.sbcAutoLoaded=true;alert('تم تحميل السكربت بنجاح!\n\nالآن اضغط Load SBC List للبدء');}).catch(e=>{alert('فشل تحميل السكربت. تأكد من الاتصال بالإنترنت.');console.error(e);});})();"
+                <a href="javascript:(function(){if(window.sbcAutoLoaded){return;}fetch('https://raw.githubusercontent.com/2saleh1/paletools-sbc-auto/main/sbc-auto-complete.js').then(r=>r.text()).then(code=>{eval(code);window.sbcAutoLoaded=true;}).catch(e=>{console.error('Failed to load script',e);});})();"
                     class="bookmark-link">
                     SBC Auto Completer
                 </a>

@@ -1348,21 +1348,21 @@
                     position: fixed;
                     top: 10px;
                     left: 10px;
-                    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
-                    border: 1px solid rgba(59, 130, 246, 0.3);
-                    border-radius: 12px;
-                    padding: 16px;
-                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(96, 165, 250, 0.2);
+                    background: rgba(24, 28, 31, 0.96);
+                    border: 1px solid rgba(119, 133, 140, 0.35);
+                    border-radius: 10px;
+                    padding: 12px;
+                    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
                     z-index: 999999;
                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-                    color: #f8fafc;
-                    min-width: 280px;
-                    max-width: 320px;
-                    max-height: 70vh;
+                    color: #e6ecef;
+                    min-width: 260px;
+                    max-width: 300px;
+                    max-height: 65vh;
                     overflow-y: auto;
-                    backdrop-filter: blur(10px);
-                    opacity: 0.95;
-                    transition: opacity 0.3s;
+                    backdrop-filter: blur(4px);
+                    opacity: 0.98;
+                    transition: opacity 0.2s;
                 }
                 
                 #sbc-auto-ui:hover {
@@ -1374,30 +1374,27 @@
                 }
                 
                 #sbc-auto-ui h3 {
-                    margin: 0 0 12px 0;
-                    font-size: 16px;
+                    margin: 0 0 10px 0;
+                    font-size: 14px;
                     font-weight: 700;
-                    text-align: center;
-                    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    background-clip: text;
-                    font-weight: bold;
+                    text-align: left;
+                    color: #dff866;
+                    letter-spacing: 0.2px;
                 }
                 
                 #sbc-auto-ui .stats {
-                    background: rgba(15, 23, 42, 0.6);
-                    border: 1px solid rgba(59, 130, 246, 0.2);
+                    background: rgba(10, 12, 14, 0.6);
+                    border: 1px solid rgba(119, 133, 140, 0.25);
                     border-radius: 8px;
-                    padding: 10px;
-                    margin-bottom: 10px;
+                    padding: 8px;
+                    margin-bottom: 8px;
                 }
                 
                 #sbc-auto-ui .stat-item {
                     display: flex;
                     justify-content: space-between;
-                    margin: 5px 0;
-                    font-size: 11px;
+                    margin: 4px 0;
+                    font-size: 10px;
                 }
                 
                 #sbc-auto-ui .stat-item .label {
@@ -1406,115 +1403,113 @@
                 
                 #sbc-auto-ui .stat-item .value {
                     font-weight: bold;
-                    font-size: 12px;
+                    font-size: 11px;
                 }
                 
                 #sbc-auto-ui .sbc-selector {
-                    margin-bottom: 10px;
+                    margin-bottom: 8px;
                 }
                 
                 #sbc-auto-ui .sbc-selector label {
-                    font-size: 11px;
+                    font-size: 10px;
+                    color: #b7c3c9;
                 }
                 
                 #sbc-auto-ui select {
                     width: 100%;
-                    padding: 8px;
-                    border: 1px solid rgba(59, 130, 246, 0.3);
+                    padding: 7px;
+                    border: 1px solid rgba(119, 133, 140, 0.35);
                     border-radius: 6px;
-                    font-size: 12px;
-                    background: rgba(15, 23, 42, 0.8);
-                    color: #f8fafc;
-                    margin-top: 5px;
+                    font-size: 11px;
+                    background: rgba(34, 40, 44, 0.9);
+                    color: #e6ecef;
+                    margin-top: 4px;
                     cursor: pointer;
-                    transition: all 0.3s;
+                    transition: border-color 0.2s;
                 }
                 
                 #sbc-auto-ui select:hover {
-                    border-color: rgba(59, 130, 246, 0.5);
-                    background: rgba(15, 23, 42, 0.95);
+                    border-color: rgba(159, 255, 80, 0.5);
+                    background: rgba(34, 40, 44, 0.9);
                 }
                 
                 #sbc-auto-ui select:focus {
                     outline: none;
-                    border-color: #3b82f6;
-                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+                    border-color: #9fff50;
+                    box-shadow: 0 0 0 2px rgba(159, 255, 80, 0.18);
                 }
                 
                 #sbc-auto-ui input[type="number"] {
                     width: 100%;
-                    padding: 8px;
-                    border: 1px solid rgba(59, 130, 246, 0.3);
+                    padding: 7px;
+                    border: 1px solid rgba(119, 133, 140, 0.35);
                     border-radius: 6px;
-                    font-size: 12px;
-                    background: rgba(15, 23, 42, 0.8);
-                    color: #f8fafc;
-                    margin-top: 5px;
-                    transition: all 0.3s;
+                    font-size: 11px;
+                    background: rgba(34, 40, 44, 0.9);
+                    color: #e6ecef;
+                    margin-top: 4px;
+                    transition: border-color 0.2s;
                 }
                 
                 #sbc-auto-ui input[type="number"]:focus {
                     outline: none;
-                    border-color: #3b82f6;
-                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+                    border-color: #9fff50;
+                    box-shadow: 0 0 0 2px rgba(159, 255, 80, 0.18);
                 }
                 
                 #sbc-auto-ui button {
                     width: 100%;
-                    padding: 8px;
-                    border: none;
+                    padding: 7px;
+                    border: 1px solid rgba(119, 133, 140, 0.35);
                     border-radius: 6px;
-                    font-size: 12px;
+                    font-size: 11px;
                     font-weight: 600;
                     cursor: pointer;
-                    transition: all 0.3s;
-                    margin: 4px 0;
-                    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+                    transition: background-color 0.2s, border-color 0.2s;
+                    margin: 3px 0;
+                    box-shadow: none;
                 }
                 
                 #sbc-auto-ui .btn-start {
-                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-                    color: white;
+                    background: #9fff50;
+                    border-color: #9fff50;
+                    color: #101416;
                 }
                 
                 #sbc-auto-ui .btn-start:hover {
-                    background: linear-gradient(135deg, #059669 0%, #047857 100%);
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+                    background: #8fe247;
+                    border-color: #8fe247;
                 }
                 
                 #sbc-auto-ui .btn-stop {
-                    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-                    color: white;
+                    background: #c74f4f;
+                    border-color: #c74f4f;
+                    color: #f5f7f8;
                 }
                 
                 #sbc-auto-ui .btn-stop:hover {
-                    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+                    background: #b24747;
+                    border-color: #b24747;
                 }
                 
                 #sbc-auto-ui .btn-refresh {
-                    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-                    color: white;
+                    background: rgba(62, 73, 80, 0.9);
+                    color: #e6ecef;
                 }
                 
                 #sbc-auto-ui .btn-refresh:hover {
-                    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+                    background: rgba(74, 86, 94, 0.95);
+                    border-color: rgba(159, 255, 80, 0.45);
                 }
                 
                 #sbc-auto-ui .btn-record {
-                    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-                    color: white;
+                    background: rgba(62, 73, 80, 0.9);
+                    color: #d4dde2;
                     font-size: 10px;
                 }
                 
                 #sbc-auto-ui .btn-record:hover {
-                    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+                    background: rgba(74, 86, 94, 0.95);
                 }
                 
                 #sbc-auto-ui .btn-record.active {
@@ -1528,37 +1523,34 @@
                 }
                 
                 #sbc-auto-ui .btn-minimize {
-                    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-                    color: white;
+                    background: rgba(62, 73, 80, 0.9);
+                    color: #e6ecef;
                 }
                 
                 #sbc-auto-ui .btn-minimize:hover {
-                    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+                    background: rgba(74, 86, 94, 0.95);
                 }
                 
                 #sbc-auto-ui .btn-close {
-                    background: rgba(71, 85, 105, 0.5);
-                    color: #cbd5e1;
+                    background: rgba(44, 50, 54, 0.9);
+                    color: #c9d4da;
                     font-size: 11px;
                     padding: 6px;
-                    border: 1px solid rgba(148, 163, 184, 0.2);
+                    border: 1px solid rgba(119, 133, 140, 0.35);
                 }
                 
                 #sbc-auto-ui .btn-close:hover {
-                    background: rgba(71, 85, 105, 0.8);
+                    background: rgba(58, 66, 72, 0.95);
                     color: #f1f5f9;
-                    transform: translateY(-1px);
                 }
                 
                 #sbc-auto-ui .settings {
-                    background: rgba(15, 23, 42, 0.6);
-                    border: 1px solid rgba(59, 130, 246, 0.2);
+                    background: rgba(10, 12, 14, 0.6);
+                    border: 1px solid rgba(119, 133, 140, 0.25);
                     border-radius: 8px;
-                    padding: 10px;
-                    margin-bottom: 10px;
-                    font-size: 11px;
+                    padding: 8px;
+                    margin-bottom: 8px;
+                    font-size: 10px;
                 }
                 
                 #sbc-auto-ui .setting-item {
@@ -1577,23 +1569,22 @@
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    margin-top: 8px;
+                    margin-top: 6px;
                     margin-bottom: 4px;
                 }
                 
                 #sbc-auto-ui .log-title {
-                    font-size: 10px;
+                    font-size: 9px;
                     font-weight: 600;
-                    color: #94a3b8;
+                    color: #9cadb5;
                 }
                 
                 #sbc-auto-ui .btn-copy-log {
-                    background: rgba(59, 130, 246, 0.2);
-                    color: #60a5fa;
-                    border: 1px solid rgba(59, 130, 246, 0.3);
+                    background: rgba(44, 50, 54, 0.9);
+                    color: #c9d4da;
+                    border: 1px solid rgba(119, 133, 140, 0.35);
                     padding: 4px 8px;
                     font-size: 10px;
-                    font-size: 11px;
                     border-radius: 6px;
                     cursor: pointer;
                     transition: all 0.2s;
@@ -1602,18 +1593,18 @@
                 }
                 
                 #sbc-auto-ui .btn-copy-log:hover {
-                    background: rgba(59, 130, 246, 0.3);
-                    border-color: rgba(59, 130, 246, 0.5);
+                    background: rgba(58, 66, 72, 0.95);
+                    border-color: rgba(159, 255, 80, 0.4);
                     transform: translateY(0);
-                    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+                    box-shadow: none;
                 }
                 
                 #sbc-auto-ui .log {
-                    background: rgba(2, 6, 23, 0.8);
-                    border: 1px solid rgba(59, 130, 246, 0.2);
+                    background: rgba(13, 16, 18, 0.95);
+                    border: 1px solid rgba(119, 133, 140, 0.25);
                     border-radius: 6px;
-                    padding: 8px;
-                    max-height: 180px;
+                    padding: 7px;
+                    max-height: 150px;
                     overflow-y: auto;
                     overflow-x: auto;
                     font-size: 9px;
@@ -1627,8 +1618,8 @@
                 #sbc-auto-ui .log-entry {
                     margin: 2px 0;
                     padding: 2px 0;
-                    border-bottom: 1px solid rgba(59, 130, 246, 0.1);
-                    color: #cbd5e1;
+                    border-bottom: 1px solid rgba(119, 133, 140, 0.18);
+                    color: #cfd8dd;
                     word-break: break-word;
                     overflow-wrap: break-word;
                     line-height: 1.3;
@@ -2083,9 +2074,7 @@
     }
 
     // ========== تهيئة ==========
-    console.log('✅ Paletools SBC Auto Completer loaded!');
     createUI();
-    log('✅ تم تحميل السكربت بنجاح');
-    log('💡 اضغط "تحميل قائمة SBCs" للبدء');
+    log('جاهز');
 
 })();
