@@ -1507,24 +1507,31 @@
     }
 
     async function findAndOpenSBCTileByName(targetName) {
-        // البحث عن tile SBC في DOM من خلال البحث في نصوص العناصر
-        log(`🔍 البحث عن: ${targetName}`);
+        // البحث عن tile SBC في DOM من خلال البحث المباشر في نصوص العناصر الفعلية
+        log(`🔍 البحث المباشر في DOM عن: ${targetName}`);
 
         const normalized = normalizeSearchText(targetName);
 
-        // Helper function to search in visible tiles
+        // Helper function to search in visible tiles by direct DOM text content
         const searchInCurrentTiles = async () => {
             const allTiles = Array.from(document.querySelectorAll('.ut-sbc-set-tile-view'))
                 .filter(tile => !tile.closest('#sbc-auto-ui'));
+
+            log(`🔎 فحص ${allTiles.length} tile في الصفحة...`);
 
             for (const tile of allTiles) {
                 const tileText = (tile.textContent || '').trim();
                 const tileNormalized = normalizeSearchText(tileText);
 
-                // البحث عن تطابق معقول (كلمات رئيسية من الاسم المطلوب)
-                if (tileNormalized.includes(normalized) || 
-                    normalized.split(' ').some(word => tileNormalized.includes(word) && word.length > 3)) {
-                    log(`✅ وجدت الـ tile: ${targetName}`);
+                // ابحث عن الاسم الكامل أو أي جزء منه
+                // المهم: ابحث في النص الفعلي من الـ DOM ولا تعتمد على الأسماء المحفوظة
+                const hasExactMatch = tileNormalized.includes(normalized);
+                const hasKeywordMatch = normalized.split(' ')
+                    .filter(word => word.length > 3)
+                    .every(word => tileNormalized.includes(word));
+                
+                if (hasExactMatch || hasKeywordMatch) {
+                    log(`✅ وجدت: ${tileText.substring(0, 50)}...`);
                     
                     // Scroll into view and click
                     tile.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1551,7 +1558,7 @@
                         }
                         
                         if (isSBCChallengeOpen()) {
-                            log(`✅ تم فتح التحدي: ${targetName} (محاولة ${clickAttempt}, بعد ${openAttempts * 300}ms)`);
+                            log(`✅ تم فتح التحدي (محاولة ${clickAttempt}, بعد ${openAttempts * 300}ms)`);
                             return true;
                         } else if (clickAttempt < 3) {
                             log(`⚠️ محاولة ${clickAttempt} فشلت - إعادة المحاولة...`);
@@ -1591,7 +1598,7 @@
             prevHeight = newHeight;
         }
 
-        log(`❌ لم أجد الـ tile: ${targetName}`);
+        log(`❌ لم أجد: ${targetName}`);
         return false;
     }
 
@@ -1642,26 +1649,26 @@
                         break;
                     }
 
-                    // Load the list to find the challenge
-                    await getSBCList();
-                    log(`📋 تم تحميل ${sbcList.length} SBC`);
-
-                    // Try to find in the loaded list using standard method
-                    const resolvedIndex = resolveSBCIndexByName(knownName);
-                    if (resolvedIndex >= 0) {
-                        log(`✅ وجدت في القائمة (index: ${resolvedIndex})`);
-                        const opened = await selectAndOpenSBC(resolvedIndex);
-                        if (opened) {
-                            await wait(1000); // Wait for challenge to load
-                            success = await completeOpenedChallengeCycle();
-                        }
+                    // Try direct DOM search FIRST (handles challenges with fallback names like "SBC 63")
+                    log('🔍 محاولة البحث المباشر في DOM...');
+                    const tileFound = await findAndOpenSBCTileByName(knownName);
+                    if (tileFound) {
+                        await wait(1200); // Wait for challenge page to load
+                        success = await completeOpenedChallengeCycle();
                     } else {
-                        // Fallback: Try direct tile search if not in loaded list
-                        log(`❌ لم تجد في القائمة المحملة، محاولة البحث المباشر...`);
-                        const tileFound = await findAndOpenSBCTileByName(knownName);
-                        if (tileFound) {
-                            await wait(1200); // Wait for challenge page to load
-                            success = await completeOpenedChallengeCycle();
+                        // Fallback: Try list search if direct search fails
+                        log('📋 محاولة البحث في القائمة المحملة...');
+                        await getSBCList();
+                        log(`📋 تم تحميل ${sbcList.length} SBC`);
+
+                        const resolvedIndex = resolveSBCIndexByName(knownName);
+                        if (resolvedIndex >= 0) {
+                            log(`✅ وجدت في القائمة (index: ${resolvedIndex})`);
+                            const opened = await selectAndOpenSBC(resolvedIndex);
+                            if (opened) {
+                                await wait(1000); // Wait for challenge to load
+                                success = await completeOpenedChallengeCycle();
+                            }
                         } else {
                             log('❌ فشل إيجاد التحدي في المحاولات');
                         }
