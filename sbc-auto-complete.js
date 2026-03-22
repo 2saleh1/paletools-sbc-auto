@@ -130,6 +130,27 @@
         return -1;
     }
 
+    function resolveSBCNameFromAliases(aliases) {
+        if (!Array.isArray(aliases) || aliases.length === 0 || !sbcList.length) return null;
+
+        const normalizedAliases = aliases.map(a => normalizeSearchText(a)).filter(Boolean);
+        if (!normalizedAliases.length) return null;
+
+        // Exact first
+        for (const alias of normalizedAliases) {
+            const exact = sbcList.find(sbc => normalizeSearchText(sbc.name) === alias);
+            if (exact) return exact.name;
+        }
+
+        // Includes fallback
+        for (const alias of normalizedAliases) {
+            const includes = sbcList.find(sbc => normalizeSearchText(sbc.name).includes(alias));
+            if (includes) return includes.name;
+        }
+
+        return null;
+    }
+
     function getSbcTileNodes() {
         const selectors = [
             '.ut-sbc-set-tile-view:not(.sbc-set--buttons)',
@@ -1432,6 +1453,72 @@
         stopScript();
     }
 
+    async function startDailySBCs(cycles = 1) {
+        if (isRunning) {
+            log('⚠️ السكربت يعمل بالفعل!');
+            return;
+        }
+
+        const totalCycles = Number.isFinite(cycles) ? cycles : 1;
+        const dailyOrder = [
+            {
+                key: 'Daily Bronze Upgrade',
+                aliases: ['Daily Bronze Upgrade', 'Bronze Upgrade', 'Daily Bronze']
+            },
+            {
+                key: 'Daily Silver Upgrade',
+                aliases: ['Daily Silver Upgrade', 'Silver Upgrade', 'Daily Silver']
+            },
+            {
+                key: 'Daily Common Gold Upgrade',
+                aliases: ['Daily Common Gold Upgrade', 'Common Gold Upgrade', 'Daily Gold Upgrade', 'Daily Common Gold']
+            }
+        ];
+
+        isRunning = true;
+        log(`🚀 بدء التحديات اليومية (Bronze -> Silver -> Gold) | التكرارات: ${totalCycles}`);
+        updateUI();
+
+        for (const daily of dailyOrder) {
+            if (!isRunning) break;
+
+            log(`📌 التحدي اليومي: ${daily.key}`);
+
+            for (let i = 0; i < totalCycles; i++) {
+                if (!isRunning) break;
+
+                log(`🔁 ${daily.key} | دورة ${i + 1}/${totalCycles}`);
+
+                // Refresh list and resolve best matching SBC name for current daily target
+                const inSBC = await goToSBCSection();
+                if (!inSBC) {
+                    log('❌ فشل الانتقال إلى واجهة SBC');
+                    isRunning = false;
+                    break;
+                }
+
+                await getSBCList();
+                const resolvedName = resolveSBCNameFromAliases(daily.aliases);
+                if (!resolvedName) {
+                    log(`❌ لم يتم العثور على ${daily.key} في القائمة`);
+                    isRunning = false;
+                    break;
+                }
+
+                const success = await completeSBCCycle(resolvedName);
+                if (!success) {
+                    log(`❌ فشل تنفيذ ${daily.key} - إيقاف السكربت`);
+                    isRunning = false;
+                    break;
+                }
+
+                await wait(CONFIG.WAIT_TIME);
+            }
+        }
+
+        stopScript();
+    }
+
     function stopScript() {
         const wasRunning = isRunning;
         isRunning = false;
@@ -1443,6 +1530,7 @@
         const searchInput = document.getElementById('sbc-search');
         const selectInput = document.getElementById('sbc-select');
         const startCurrentBtn = document.getElementById('start-current-btn');
+        const startDailyBtn = document.getElementById('start-daily-btn');
 
         if (startBtn) startBtn.style.display = 'block';
         if (stopBtn) stopBtn.style.display = 'none';
@@ -1450,6 +1538,7 @@
         if (searchInput) searchInput.disabled = false;
         if (selectInput) selectInput.disabled = false;
         if (startCurrentBtn) startCurrentBtn.disabled = false;
+        if (startDailyBtn) startDailyBtn.disabled = false;
 
         if (wasRunning) {
             log('\n⏸️ تم إيقاف السكربت');
@@ -1753,6 +1842,7 @@
             <button class="btn-refresh" id="refresh-btn">تحميل القائمة</button>
             <button class="btn-start" id="start-btn">بدء</button>
             <button class="btn-refresh" id="start-current-btn">بدء من التحدي المفتوح</button>
+            <button class="btn-refresh" id="start-daily-btn">تشغيل اليوميات (Bronze -> Silver -> Gold)</button>
             <button class="btn-stop" id="stop-btn" style="display:none">إيقاف</button>
             <button class="btn-minimize" id="minimize-btn">تصغير</button>
             <button class="btn-close" id="close-btn">إغلاق</button>
@@ -1848,6 +1938,7 @@
             document.getElementById('sbc-search').disabled = true;
             document.getElementById('sbc-select').disabled = true;
             document.getElementById('start-current-btn').disabled = true;
+            document.getElementById('start-daily-btn').disabled = true;
 
             startAutoSBC(sbcName, cycles);
         });
@@ -1868,8 +1959,24 @@
             document.getElementById('sbc-search').disabled = true;
             document.getElementById('sbc-select').disabled = true;
             document.getElementById('start-current-btn').disabled = true;
+            document.getElementById('start-daily-btn').disabled = true;
 
             startFromOpenedSBC(cycles);
+        });
+
+        document.getElementById('start-daily-btn').addEventListener('click', () => {
+            const cyclesRaw = document.getElementById('cycles-input').value;
+            const cycles = parseCyclesValue(cyclesRaw);
+
+            document.getElementById('start-btn').style.display = 'none';
+            document.getElementById('stop-btn').style.display = 'block';
+            document.getElementById('refresh-btn').disabled = true;
+            document.getElementById('sbc-search').disabled = true;
+            document.getElementById('sbc-select').disabled = true;
+            document.getElementById('start-current-btn').disabled = true;
+            document.getElementById('start-daily-btn').disabled = true;
+
+            startDailySBCs(cycles);
         });
 
         document.getElementById('stop-btn').addEventListener('click', () => {
