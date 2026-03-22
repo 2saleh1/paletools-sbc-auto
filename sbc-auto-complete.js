@@ -1530,30 +1530,36 @@
                     tile.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     await wait(300);
                     
-                    // Try multiple click methods to ensure it opens
-                    log('🖱️ محاولة فتح التحدي...');
-                    tile.click();
-                    await wait(200);
-                    tile.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-                    
-                    // Poll for the challenge to actually open (like goToSBCSection does)
-                    log('⏳ انتظار فتح التحدي...');
-                    let openAttempts = 0;
-                    while (openAttempts < 25 && !isSBCChallengeOpen()) {
-                        await wait(300);
-                        openAttempts++;
-                        if (openAttempts % 5 === 0) {
-                            log(`⏳ الانتظار: ${openAttempts * 300}ms...`);
+                    // Try multiple times if first attempt doesn't open the challenge
+                    for (let clickAttempt = 1; clickAttempt <= 3; clickAttempt++) {
+                        // Try multiple click methods
+                        log(`🖱️ محاولة الفتح ${clickAttempt}/3...`);
+                        tile.click();
+                        await wait(150);
+                        tile.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                        await wait(50);
+                        tile.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+                        await wait(150);
+                        tile.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                        
+                        // Poll for the challenge to actually open (like goToSBCSection does)
+                        log('⏳ انتظار فتح التحدي...');
+                        let openAttempts = 0;
+                        while (openAttempts < 15 && !isSBCChallengeOpen()) {
+                            await wait(300);
+                            openAttempts++;
+                        }
+                        
+                        if (isSBCChallengeOpen()) {
+                            log(`✅ تم فتح التحدي: ${targetName} (محاولة ${clickAttempt}, بعد ${openAttempts * 300}ms)`);
+                            return true;
+                        } else if (clickAttempt < 3) {
+                            log(`⚠️ محاولة ${clickAttempt} فشلت - إعادة المحاولة...`);
+                            await wait(500);
                         }
                     }
                     
-                    if (isSBCChallengeOpen()) {
-                        log(`✅ تم فتح التحدي: ${targetName} (بعد ${openAttempts * 300}ms)`);
-                        return true;
-                    } else {
-                        log(`❌ فشل فتح التحدي بعد انتظار ${openAttempts * 300}ms - عناصر البناء غير موجودة`);
-                        log(`📍 يوجد عدد tiles: ${allTiles.length}`);
-                    }
+                    log(`❌ فشل فتح التحدي بعد 3 محاولات نقر`);
                     return false;
                 }
             }
