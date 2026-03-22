@@ -2196,6 +2196,7 @@
 
         document.getElementById('minimize-btn').addEventListener('click', () => {
             ui.classList.add('minimized');
+            ui.style.display = 'none';
             showReopenButton();
         });
     }
