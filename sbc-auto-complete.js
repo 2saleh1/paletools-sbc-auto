@@ -1508,23 +1508,56 @@
 
     async function findAndOpenSBCTileByName(targetName) {
         // البحث عن tile SBC في DOM من خلال البحث في نصوص العناصر
-        log(`🔍 البحث عن: ${targetName} في عناصر الصفحة...`);
+        log(`🔍 البحث عن: ${targetName}`);
 
         const normalized = normalizeSearchText(targetName);
-        const allTiles = Array.from(document.querySelectorAll('.ut-sbc-set-tile-view'))
-            .filter(tile => !tile.closest('#sbc-auto-ui'));
 
-        for (const tile of allTiles) {
-            const tileText = (tile.textContent || '').trim();
-            const tileNormalized = normalizeSearchText(tileText);
+        // Helper function to search in visible tiles
+        const searchInCurrentTiles = () => {
+            const allTiles = Array.from(document.querySelectorAll('.ut-sbc-set-tile-view'))
+                .filter(tile => !tile.closest('#sbc-auto-ui'));
 
-            // البحث عن تطابق معقول
-            if (tileNormalized.includes(normalized) || normalized.split(' ').some(word => tileNormalized.includes(word) && word.length > 3)) {
-                log(`✅ وجدت: ${targetName}`);
-                tile.click();
-                await wait(500);
+            for (const tile of allTiles) {
+                const tileText = (tile.textContent || '').trim();
+                const tileNormalized = normalizeSearchText(tileText);
+
+                // البحث عن تطابق معقول (كلمات رئيسية من الاسم المطلوب)
+                if (tileNormalized.includes(normalized) || 
+                    normalized.split(' ').some(word => tileNormalized.includes(word) && word.length > 3)) {
+                    log(`✅ وجدت: ${targetName}`);
+                    tile.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    await wait(200);
+                    tile.click();
+                    await wait(500);
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        // First attempt: search in current view
+        if (await searchInCurrentTiles()) {
+            return true;
+        }
+
+        // Second attempt: try scrolling and searching again (like getSBCList does)
+        log('📜 محاولة البحث مع تمرير الصفحة...');
+        const scrollContainer = document.querySelector('.ut-container-scroll, [class*="scroll"]') || document.documentElement;
+
+        let prevHeight = 0;
+        for (let attempt = 0; attempt < 8; attempt++) {
+            scrollContainer.scrollTop = prevHeight + 1000;
+            await wait(300);
+
+            if (await searchInCurrentTiles()) {
                 return true;
             }
+
+            const newHeight = scrollContainer.scrollHeight;
+            if (newHeight === prevHeight) {
+                break; // صل إلى النهاية
+            }
+            prevHeight = newHeight;
         }
 
         log(`❌ لم أجد الـ tile: ${targetName}`);
