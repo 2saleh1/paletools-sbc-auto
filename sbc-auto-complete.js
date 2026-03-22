@@ -1524,12 +1524,33 @@
                 // البحث عن تطابق معقول (كلمات رئيسية من الاسم المطلوب)
                 if (tileNormalized.includes(normalized) || 
                     normalized.split(' ').some(word => tileNormalized.includes(word) && word.length > 3)) {
-                    log(`✅ وجدت: ${targetName}`);
+                    log(`✅ وجدت الـ tile: ${targetName}`);
+                    
+                    // Scroll into view and click
                     tile.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    await wait(200);
+                    await wait(300);
+                    
+                    // Try multiple click methods to ensure it opens
                     tile.click();
-                    await wait(500);
-                    return true;
+                    await wait(200);
+                    tile.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                    await wait(1000); // Give page time to load
+                    
+                    // Verify the challenge is actually open
+                    if (isSBCChallengeOpen()) {
+                        log(`✅ تم فتح التحدي: ${targetName}`);
+                        return true;
+                    } else {
+                        log(`⚠️ الـ tile تم النقر عليه لكن التحدي لم يفتح بعد`);
+                        await wait(800);
+                        
+                        // Try one more verification
+                        if (isSBCChallengeOpen()) {
+                            log(`✅ تم فتح التحدي في المحاولة الثانية: ${targetName}`);
+                            return true;
+                        }
+                    }
+                    return false;
                 }
             }
             return false;
@@ -1613,7 +1634,7 @@
 
                     const tileFound = await findAndOpenSBCTileByName(knownName);
                     if (tileFound) {
-                        await wait(600); // Wait for page to load
+                        await wait(1200); // Wait longer for challenge page to fully load
                         success = await completeOpenedChallengeCycle();
                     } else {
                         // Fallback to list search if direct search fails
