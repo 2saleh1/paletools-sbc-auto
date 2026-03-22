@@ -16,6 +16,7 @@
     let sbcsCompleted = 0;
     let currentSBC = null;
     let sbcList = [];
+    let openedModeTargetName = '';
 
     // ========== الدوال المساعدة ==========
     const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -95,6 +96,29 @@
             .toLowerCase()
             .replace(/\s+/g, ' ')
             .replace(/[\u064B-\u065F]/g, '');
+    }
+
+    function isMeaningfulSBCName(name) {
+        const n = normalizeSearchText(name);
+        if (!n || n.length < 4) return false;
+
+        const blocked = new Set([
+            'sbc',
+            'challenge',
+            'challenges',
+            'squad',
+            'for you',
+            'rewards',
+            'reward',
+            'submit',
+            'exchange',
+            'home'
+        ]);
+
+        if (blocked.has(n)) return false;
+        if (/^(sbc|challenge|challenges)\s*\d*$/i.test(n)) return false;
+
+        return true;
     }
 
     function resolveSBCNameFromQuery(queryText) {
@@ -1242,7 +1266,7 @@
         for (const selector of selectors) {
             const el = document.querySelector(selector);
             const text = (el?.textContent || '').trim();
-            if (text && text.length > 2 && !/^submit|exchange$/i.test(text)) {
+            if (text && text.length > 2 && !/^submit|exchange$/i.test(text) && isMeaningfulSBCName(text)) {
                 return text;
             }
         }
@@ -1256,7 +1280,10 @@
             .filter(text => !/^(squad|challenge|challenges)$/i.test(text));
 
         if (headingCandidates.length > 0) {
-            return headingCandidates[0];
+            const meaningful = headingCandidates.find(text => isMeaningfulSBCName(text));
+            if (meaningful) {
+                return meaningful;
+            }
         }
 
         return currentSBC?.name || '';
@@ -1275,14 +1302,22 @@
 
         const selectedName = document.getElementById('sbc-select')?.value;
         const detectedName = detectCurrentOpenedSBCName();
-        const effectiveName = detectedName || (selectedName && selectedName !== '__none__' && selectedName !== '-1' ? selectedName : 'SBC الحالي');
+        const selectedValid = selectedName && selectedName !== '__none__' && selectedName !== '-1' && isMeaningfulSBCName(selectedName);
+        const fallbackName = selectedValid ? selectedName : openedModeTargetName;
+        const effectiveName = isMeaningfulSBCName(detectedName) ? detectedName : (fallbackName || 'SBC الحالي');
         currentSBC = { name: effectiveName };
-        if (detectedName) {
+        if (isMeaningfulSBCName(detectedName)) {
             log(`✅ تم التعرف على التحدي المفتوح: ${detectedName}`);
-        } else if (selectedName && selectedName !== '__none__' && selectedName !== '-1') {
+        } else if (selectedValid) {
             log(`✅ استخدام الاسم المختار من القائمة: ${selectedName}`);
+        } else if (openedModeTargetName) {
+            log(`✅ استخدام الاسم المحفوظ من الدورة السابقة: ${openedModeTargetName}`);
         } else {
             log('⚠️ لم يتم التعرف على الاسم، سيتم التنفيذ على التحدي المفتوح الحالي');
+        }
+
+        if (isMeaningfulSBCName(effectiveName)) {
+            openedModeTargetName = effectiveName;
         }
 
         const buildSuccess = await usePaletoolsSmartBuild();
@@ -1406,6 +1441,7 @@
         }
 
         const totalCycles = Number.isFinite(cycles) ? cycles : 1;
+        openedModeTargetName = '';
 
         isRunning = true;
         log(`🚀 بدء من التحدي المفتوح... (التكرارات: ${totalCycles})\n`);
@@ -1427,18 +1463,18 @@
                 } else {
                     // Fallback path: try to resolve name again from current page context.
                     const detectedName = detectCurrentOpenedSBCName();
-                    if (detectedName && detectedName.length > 2) {
+                    if (isMeaningfulSBCName(detectedName)) {
                         currentSBC = { name: detectedName };
                     }
 
-                    const knownName = currentSBC?.name && currentSBC.name !== 'SBC الحالي';
+                    const knownName = isMeaningfulSBCName(currentSBC?.name) ? currentSBC.name : openedModeTargetName;
                     if (!knownName) {
                         log('⚠️ لم أجد التحدي مفتوحاً ولا اسم واضح لإعادة الفتح تلقائياً');
                         log('💡 افتح نفس التحدي يدوياً ثم اضغط "بدء من التحدي المفتوح"');
                         break;
                     }
 
-                    success = await completeSBCCycle(currentSBC.name);
+                    success = await completeSBCCycle(knownName);
                 }
             }
 
@@ -1543,6 +1579,7 @@
         if (wasRunning) {
             log('\n⏸️ تم إيقاف السكربت');
         }
+        openedModeTargetName = '';
         updateUI();
     }
 
@@ -1949,8 +1986,9 @@
 
             // Keep selected name as reliable fallback for repeat cycles.
             const selectedName = document.getElementById('sbc-select').value;
-            if (selectedName && selectedName !== '__none__' && selectedName !== '-1') {
+            if (selectedName && selectedName !== '__none__' && selectedName !== '-1' && isMeaningfulSBCName(selectedName)) {
                 currentSBC = { name: selectedName };
+                openedModeTargetName = selectedName;
             }
 
             document.getElementById('start-btn').style.display = 'none';
