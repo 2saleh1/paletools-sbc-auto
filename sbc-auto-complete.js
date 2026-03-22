@@ -1506,6 +1506,31 @@
         stopScript();
     }
 
+    async function findAndOpenSBCTileByName(targetName) {
+        // البحث عن tile SBC في DOM من خلال البحث في نصوص العناصر
+        log(`🔍 البحث عن: ${targetName} في عناصر الصفحة...`);
+
+        const normalized = normalizeSearchText(targetName);
+        const allTiles = Array.from(document.querySelectorAll('.ut-sbc-set-tile-view'))
+            .filter(tile => !tile.closest('#sbc-auto-ui'));
+
+        for (const tile of allTiles) {
+            const tileText = (tile.textContent || '').trim();
+            const tileNormalized = normalizeSearchText(tileText);
+
+            // البحث عن تطابق معقول
+            if (tileNormalized.includes(normalized) || normalized.split(' ').some(word => tileNormalized.includes(word) && word.length > 3)) {
+                log(`✅ وجدت: ${targetName}`);
+                tile.click();
+                await wait(500);
+                return true;
+            }
+        }
+
+        log(`❌ لم أجد الـ tile: ${targetName}`);
+        return false;
+    }
+
     async function startFromOpenedSBC(cycles = 1) {
         if (isRunning) {
             log('⚠️ السكربت يعمل بالفعل!');
@@ -1533,7 +1558,7 @@
                 if (isSBCChallengeOpen()) {
                     success = await completeOpenedChallengeCycle();
                 } else {
-                    // Fallback path: DO NOT re-detect from list page to avoid drifting to unrelated SBC.
+                    // Fallback path: Try to find the tile directly in DOM before using list
                     const knownName = isMeaningfulSBCName(openedModeTargetName)
                         ? openedModeTargetName
                         : (isMeaningfulSBCName(currentSBC?.name) ? currentSBC.name : '');
@@ -1546,7 +1571,23 @@
 
                     log(`✅ متابعة نفس التحدي المفتوح السابق: ${knownName}`);
 
-                    success = await completeSBCCycle(knownName);
+                    // Try to find tile by name directly in DOM first
+                    const inSBC = await goToSBCSection();
+                    if (!inSBC) {
+                        log('❌ فشل الانتقال إلى واجهة SBC');
+                        break;
+                    }
+
+                    const tileFound = await findAndOpenSBCTileByName(knownName);
+                    if (tileFound) {
+                        await wait(600); // Wait for page to load
+                        success = await completeOpenedChallengeCycle();
+                    } else {
+                        // Fallback to list search if direct search fails
+                        log('💡 محاولة البحث في القائمة المحملة...');
+                        await getSBCList();
+                        success = await completeSBCCycle(knownName);
+                    }
                 }
             }
 
