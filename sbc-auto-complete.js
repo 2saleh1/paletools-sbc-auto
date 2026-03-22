@@ -1370,13 +1370,16 @@
         const selectedValid = selectedName && selectedName !== '__none__' && selectedName !== '-1' && isMeaningfulSBCName(selectedName);
         const fallbackName = selectedValid ? selectedName : openedModeTargetName;
 
-        // In opened mode, keep user-selected name as priority to avoid mismatch confusion.
-        const effectiveName = selectedValid ? selectedName : (isMeaningfulSBCName(detectedName) ? detectedName : (fallbackName || 'SBC الحالي'));
+        // In opened mode, always prioritize the challenge that is currently open on screen.
+        const effectiveName = isMeaningfulSBCName(detectedName) ? detectedName : (fallbackName || 'SBC الحالي');
         currentSBC = { name: effectiveName };
-        if (selectedValid) {
-            log(`✅ الاسم المعتمد من القائمة: ${selectedName}`);
-        } else if (isMeaningfulSBCName(detectedName)) {
+        if (isMeaningfulSBCName(detectedName)) {
             log(`✅ تم التعرف على التحدي المفتوح: ${detectedName}`);
+            if (selectedValid && normalizeSearchText(selectedName) !== normalizeSearchText(detectedName)) {
+                log(`ℹ️ تم تجاهل اختيار القائمة واستخدام التحدي المفتوح: ${detectedName}`);
+            }
+        } else if (selectedValid) {
+            log(`✅ استخدام الاسم المختار من القائمة: ${selectedName}`);
         } else if (openedModeTargetName) {
             log(`✅ استخدام الاسم المحفوظ من الدورة السابقة: ${openedModeTargetName}`);
         } else {
@@ -2051,9 +2054,16 @@
             const cyclesRaw = document.getElementById('cycles-input').value;
             const cycles = parseCyclesValue(cyclesRaw);
 
-            // Keep selected name as reliable fallback for repeat cycles.
+            // Keep current opened challenge as primary target when available.
+            const detectedOpenedName = detectCurrentOpenedSBCName();
+            if (isMeaningfulSBCName(detectedOpenedName)) {
+                currentSBC = { name: detectedOpenedName };
+                openedModeTargetName = detectedOpenedName;
+            }
+
+            // Keep selected name as fallback for repeat cycles.
             const selectedName = document.getElementById('sbc-select').value;
-            if (selectedName && selectedName !== '__none__' && selectedName !== '-1' && isMeaningfulSBCName(selectedName)) {
+            if (!openedModeTargetName && selectedName && selectedName !== '__none__' && selectedName !== '-1' && isMeaningfulSBCName(selectedName)) {
                 currentSBC = { name: selectedName };
                 openedModeTargetName = selectedName;
             }
