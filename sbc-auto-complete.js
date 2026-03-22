@@ -1,5 +1,5 @@
-// Paletools SBC Auto Completer + Pack Opener
-// يكمل SBCs تلقائياً ويفتح البكجات مع إدارة اللاعبين المكررين
+// Paletools SBC Auto Completer
+// يكمل SBCs تلقائياً مع استلام المكافآت
 
 (function () {
     'use strict';
@@ -8,25 +8,12 @@
     const CONFIG = {
         // وقت الانتظار بين العمليات (تم تقليله للسرعة)
         WAIT_TIME: 800,
-        CLICK_DELAY: 150,
-
-        // إدارة اللاعبين المكررين
-        GOLD_DUPLICATES_TO_SBC_STORAGE: true,  // الذهبيين المكررين → SBC Storage
-        BRONZE_SILVER_QUICK_SELL: true,        // البرونز والفضيين → Quick Sell
-
-        // إيقاف تلقائي عند امتلاء SBC Storage
-        STOP_ON_SBC_STORAGE_FULL: true,
-
-        // عدد البكجات المراد فتحها بعد كل SBC (0 = لا تفتح البكجات، -1 = كل البكجات المتاحة)
-        PACKS_PER_SBC: 0  // Changed to 0 - User wants to save packs
+        CLICK_DELAY: 150
     };
 
     // ========== المتغيرات ==========
     let isRunning = false;
     let sbcsCompleted = 0;
-    let packsOpened = 0;
-    let goldsSentToStorage = 0;
-    let quickSells = 0;
     let currentSBC = null;
     let sbcList = [];
 
@@ -93,6 +80,34 @@
         const parsed = Number.parseInt(normalized, 10);
         if (Number.isNaN(parsed) || parsed < 1) return 1;
         return Math.min(parsed, 100);
+    }
+
+    function normalizeSearchText(input) {
+        return String(input || '')
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, ' ')
+            .replace(/[\u064B-\u065F]/g, '');
+    }
+
+    function resolveSBCNameFromQuery(queryText) {
+        const query = normalizeSearchText(queryText);
+        if (!query || !sbcList.length) return null;
+
+        const byExact = sbcList.find(sbc => normalizeSearchText(sbc.name) === query);
+        if (byExact) return byExact.name;
+
+        const startsWithMatches = sbcList.filter(sbc => normalizeSearchText(sbc.name).startsWith(query));
+        if (startsWithMatches.length === 1) return startsWithMatches[0].name;
+
+        const includesMatches = sbcList.filter(sbc => normalizeSearchText(sbc.name).includes(query));
+        if (includesMatches.length === 1) return includesMatches[0].name;
+
+        // If multiple matches, return first to keep flow smooth.
+        if (startsWithMatches.length > 0) return startsWithMatches[0].name;
+        if (includesMatches.length > 0) return includesMatches[0].name;
+
+        return null;
     }
 
     function resolveSBCIndexByName(targetName) {
@@ -1051,184 +1066,6 @@
         return true;
     }
 
-    // ========== فتح البكجات ==========
-    async function openPacks(count = 1) {
-        log(`📦 فتح ${count} بكج...`);
-
-        // Navigate to store
-        await goToStore();
-        await wait(CONFIG.WAIT_TIME);
-
-        for (let i = 0; i < count; i++) {
-            const success = await openSinglePack();
-            if (!success) break;
-
-            await wait(CONFIG.WAIT_TIME);
-        }
-
-        log(`✅ تم فتح ${count} بكج`);
-    }
-
-    async function goToStore() {
-        log('🏪 الانتقال إلى المتجر...');
-
-        const storeSelectors = [
-            'button.ut-tab-bar-item.icon-store',
-            'a[href*="store"]',
-            'button[class*="store"]',
-            '.icon-store'
-        ];
-
-        for (const selector of storeSelectors) {
-            if (await clickElement(selector)) {
-                await wait(CONFIG.WAIT_TIME);
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    async function openSinglePack() {
-        // Find first pack
-        const pack = document.querySelector('.ut-pack-tile, .ut-tile-pack, .pack-item');
-        if (!pack) {
-            log('❌ لا توجد بكجات متاحة');
-            return false;
-        }
-
-        pack.click();
-        await wait(1000);
-
-        // Open pack
-        await clickElement('.btn-standard.call-to-action');
-        await wait(CONFIG.WAIT_TIME);
-
-        // Skip animation
-        document.body.click();
-        document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
-        await wait(CONFIG.WAIT_TIME);
-
-        // Handle duplicates
-        await handleDuplicates();
-
-        packsOpened++;
-        updateUI();
-
-        return true;
-    }
-
-    // ========== إدارة اللاعبين المكررين ==========
-    async function handleDuplicates() {
-        log('🔄 معالجة اللاعبين المكررين...');
-
-        await wait(1500);
-
-        // Get all duplicate items
-        const items = document.querySelectorAll('.ut-item, .player-item, [class*="item"]');
-
-        for (const item of items) {
-            const isDuplicate = item.querySelector('.duplicate, [class*="duplicate"]');
-            if (!isDuplicate) continue;
-
-            // Check rarity
-            const isGold = item.classList.contains('gold') ||
-                item.classList.contains('rare') ||
-                item.querySelector('.gold, .rare');
-
-            const isBronzeOrSilver = item.classList.contains('bronze') ||
-                item.classList.contains('silver') ||
-                item.querySelector('.bronze, .silver');
-
-            // Select the item
-            item.click();
-            await wait(300);
-
-            if (isGold && CONFIG.GOLD_DUPLICATES_TO_SBC_STORAGE) {
-                // Send gold duplicates to SBC Storage
-                const success = await sendToSBCStorage();
-                if (success) {
-                    goldsSentToStorage++;
-                    log('💛 تم إرسال لاعب ذهبي إلى SBC Storage');
-                } else if (CONFIG.STOP_ON_SBC_STORAGE_FULL) {
-                    log('⚠️ SBC Storage ممتلئ! إيقاف السكربت...');
-                    stopScript();
-                    return;
-                }
-            } else if (isBronzeOrSilver && CONFIG.BRONZE_SILVER_QUICK_SELL) {
-                // Quick sell bronze/silver duplicates
-                await quickSellItem();
-                quickSells++;
-                log('💰 تم بيع لاعب برونزي/فضي');
-            }
-
-            await wait(500);
-        }
-
-        // Send remaining items to club
-        await clickElement('.store-all, .sendToClub');
-
-        updateUI();
-    }
-
-    async function sendToSBCStorage() {
-        // Right click or long press on item
-        const selectedItem = document.querySelector('.selected, .ut-item--selected');
-        if (!selectedItem) return false;
-
-        // Try to open context menu
-        selectedItem.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }));
-        await wait(500);
-
-        // Look for "Send to SBC Storage" option
-        const sbcStorageBtn = findElementByText('SBC', 'button') ||
-            findElementByText('Storage', 'button');
-
-        if (sbcStorageBtn) {
-            sbcStorageBtn.click();
-            await wait(500);
-
-            // Check if storage is full
-            const fullMessage = findElementByText('full', 'div') ||
-                findElementByText('maximum', 'div');
-
-            if (fullMessage) {
-                return false; // Storage full
-            }
-
-            return true;
-        }
-
-        // Alternative: Try keyboard shortcut
-        document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true }));
-        await wait(500);
-
-        return true;
-    }
-
-    async function quickSellItem() {
-        // Look for quick sell button
-        const quickSellSelectors = [
-            'button:contains("Quick Sell")',
-            'button[class*="quicksell"]',
-            '.quick-sell-button'
-        ];
-
-        for (const selector of quickSellSelectors) {
-            if (await clickElement(selector)) {
-                // Confirm
-                const confirmBtn = findElementByText('Confirm', 'button');
-                if (confirmBtn) {
-                    confirmBtn.click();
-                    await wait(300);
-                }
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     // ========== العملية الكاملة ==========
     async function completeSBCCycle(targetSBCName) {
         if (!isRunning) return;
@@ -1284,11 +1121,6 @@
         if (!claimed) {
             log('❌ فشل استلام المكافآت - لن ننتقل لتحدي آخر');
             return false;
-        }
-
-        // 8. Open packs
-        if (CONFIG.PACKS_PER_SBC > 0) {
-            await openPacks(CONFIG.PACKS_PER_SBC);
         }
 
         log(`✅ تم إكمال دورة SBC بنجاح!\n`);
@@ -1450,8 +1282,26 @@
                     margin-top: 4px;
                     transition: border-color 0.2s;
                 }
+
+                #sbc-auto-ui input[type="text"] {
+                    width: 100%;
+                    padding: 7px;
+                    border: 1px solid rgba(119, 133, 140, 0.35);
+                    border-radius: 6px;
+                    font-size: 11px;
+                    background: rgba(34, 40, 44, 0.9);
+                    color: #e6ecef;
+                    margin-top: 4px;
+                    transition: border-color 0.2s;
+                }
                 
                 #sbc-auto-ui input[type="number"]:focus {
+                    outline: none;
+                    border-color: #9fff50;
+                    box-shadow: 0 0 0 2px rgba(159, 255, 80, 0.18);
+                }
+
+                #sbc-auto-ui input[type="text"]:focus {
                     outline: none;
                     border-color: #9fff50;
                     box-shadow: 0 0 0 2px rgba(159, 255, 80, 0.18);
@@ -1502,26 +1352,6 @@
                     border-color: rgba(159, 255, 80, 0.45);
                 }
                 
-                #sbc-auto-ui .btn-record {
-                    background: rgba(62, 73, 80, 0.9);
-                    color: #d4dde2;
-                    font-size: 10px;
-                }
-                
-                #sbc-auto-ui .btn-record:hover {
-                    background: rgba(74, 86, 94, 0.95);
-                }
-                
-                #sbc-auto-ui .btn-record.active {
-                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-                    animation: pulse 2s ease-in-out infinite;
-                }
-                
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.7; }
-                }
-                
                 #sbc-auto-ui .btn-minimize {
                     background: rgba(62, 73, 80, 0.9);
                     color: #e6ecef;
@@ -1542,27 +1372,6 @@
                 #sbc-auto-ui .btn-close:hover {
                     background: rgba(58, 66, 72, 0.95);
                     color: #f1f5f9;
-                }
-                
-                #sbc-auto-ui .settings {
-                    background: rgba(10, 12, 14, 0.6);
-                    border: 1px solid rgba(119, 133, 140, 0.25);
-                    border-radius: 8px;
-                    padding: 8px;
-                    margin-bottom: 8px;
-                    font-size: 10px;
-                }
-                
-                #sbc-auto-ui .setting-item {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin: 5px 0;
-                }
-                
-                #sbc-auto-ui input[type="checkbox"] {
-                    width: 16px;
-                    height: 16px;
                 }
                 
                 #sbc-auto-ui .log-header {
@@ -1626,27 +1435,20 @@
                 }
             </style>
             
-            <h3>🎯 SBC Auto Completer</h3>
+            <h3>SBC Auto Completer</h3>
             
             <div class="stats">
                 <div class="stat-item">
-                    <span class="label">✅ SBCs مكتملة:</span>
+                    <span class="label">SBCs مكتملة:</span>
                     <span class="value" id="sbcs-count">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="label">📦 بكجات مفتوحة:</span>
-                    <span class="value" id="packs-count">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="label">💛 ذهبيين → Storage:</span>
-                    <span class="value" id="golds-count">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="label">💰 Quick Sells:</span>
-                    <span class="value" id="sells-count">0</span>
                 </div>
             </div>
             
+            <div class="sbc-selector">
+                <label>بحث SBC:</label>
+                <input type="text" id="sbc-search" placeholder="اكتب اسم التحدي...">
+            </div>
+
             <div class="sbc-selector">
                 <label>اختر SBC:</label>
                 <select id="sbc-select">
@@ -1659,31 +1461,15 @@
                 <input type="number" id="cycles-input" value="1" min="1" max="100">
             </div>
             
-            <div class="settings">
-                <div class="setting-item">
-                    <span>ذهبيين → SBC Storage</span>
-                    <input type="checkbox" id="gold-storage" checked>
-                </div>
-                <div class="setting-item">
-                    <span>برونز/فضي → Quick Sell</span>
-                    <input type="checkbox" id="bronze-silver-sell" checked>
-                </div>
-                <div class="setting-item">
-                    <span>إيقاف عند امتلاء Storage</span>
-                    <input type="checkbox" id="stop-full" checked>
-                </div>
-            </div>
-            
-            <button class="btn-refresh" id="refresh-btn">🔄 تحميل قائمة SBCs</button>
-            <button class="btn-record" id="record-btn">🔍 وضع التسجيل: إيقاف</button>
-            <button class="btn-start" id="start-btn">▶️ بدء التشغيل التلقائي</button>
-            <button class="btn-stop" id="stop-btn" style="display:none">⏸️ إيقاف</button>
-            <button class="btn-minimize" id="minimize-btn">➖ تصغير</button>
-            <button class="btn-close" id="close-btn">✖️ إغلاق</button>
+            <button class="btn-refresh" id="refresh-btn">تحميل القائمة</button>
+            <button class="btn-start" id="start-btn">بدء</button>
+            <button class="btn-stop" id="stop-btn" style="display:none">إيقاف</button>
+            <button class="btn-minimize" id="minimize-btn">تصغير</button>
+            <button class="btn-close" id="close-btn">إغلاق</button>
             
             <div class="log-header">
-                <span class="log-title">📋 Console Log</span>
-                <button class="btn-copy-log" id="copy-log-btn">📋 نسخ الكل</button>
+                <span class="log-title">السجل</span>
+                <button class="btn-copy-log" id="copy-log-btn">نسخ</button>
             </div>
             <div class="log" id="log-container">
                 <div class="log-entry">جاهز للبدء...</div>
@@ -1693,55 +1479,83 @@
         document.body.appendChild(ui);
 
         // Event listeners
-        document.getElementById('refresh-btn').addEventListener('click', async () => {
-            // Check if we're in SBC section
-            const inSBCSection = document.querySelector('.ut-sbc-set-tile, .sbc-set-tile, [class*="sbc-set"]');
-
-            if (!inSBCSection) {
-                alert('⚠️ تنبيه مهم\n\nيجب الدخول إلى صفحة SBC أولاً!\n\n1. اضغط على أيقونة SBC في القائمة\n2. ثم اضغط "تحميل قائمة SBCs"');
-                log('⚠️ يجب الدخول إلى صفحة SBC أولاً');
-                return;
-            }
-
-            log('🔄 جاري تحميل قائمة SBCs...');
-            await wait(500);
-            await getSBCList();
-
+        const renderSBCOptions = (filterText = '') => {
             const select = document.getElementById('sbc-select');
             select.innerHTML = '';
 
-            if (sbcList.length === 0) {
-                select.innerHTML = '<option value="__none__">-- لا توجد SBCs متاحة --</option>';
-                log('❌ لم يتم العثور على SBCs');
-            } else {
-                sbcList.forEach((sbc) => {
-                    const option = document.createElement('option');
-                    option.value = sbc.name;
-                    option.textContent = sbc.name;
-                    select.appendChild(option);
-                });
-                log(`✅ تم تحميل ${sbcList.length} SBC`);
+            const normalizedFilter = normalizeSearchText(filterText);
+            const filtered = sbcList.filter(sbc => !normalizedFilter || normalizeSearchText(sbc.name).includes(normalizedFilter));
+
+            if (filtered.length === 0) {
+                select.innerHTML = '<option value="__none__">-- لا توجد نتائج --</option>';
+                return;
+            }
+
+            filtered.forEach((sbc) => {
+                const option = document.createElement('option');
+                option.value = sbc.name;
+                option.textContent = sbc.name;
+                select.appendChild(option);
+            });
+
+            // Keep UX fast: auto-select first match when available
+            if (filtered.length > 0) {
+                select.selectedIndex = 0;
+            }
+        };
+
+        document.getElementById('refresh-btn').addEventListener('click', async () => {
+            log('تحميل قائمة SBC...');
+            await goToSBCSection();
+            await wait(400);
+            await getSBCList();
+            renderSBCOptions(document.getElementById('sbc-search').value);
+            log(`تم تحميل ${sbcList.length} SBC`);
+        });
+
+        document.getElementById('sbc-search').addEventListener('input', (e) => {
+            renderSBCOptions(e.target.value);
+        });
+
+        document.getElementById('sbc-search').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                renderSBCOptions(e.target.value);
             }
         });
 
-        document.getElementById('start-btn').addEventListener('click', () => {
-            const sbcName = document.getElementById('sbc-select').value;
+        document.getElementById('start-btn').addEventListener('click', async () => {
+            let sbcName = document.getElementById('sbc-select').value;
+            const searchQuery = document.getElementById('sbc-search').value;
             const cyclesRaw = document.getElementById('cycles-input').value;
             const cycles = parseCyclesValue(cyclesRaw);
 
             if (!sbcName || sbcName === '-1' || sbcName === '__none__') {
-                alert('⚠️ اختر SBC من القائمة أولاً!');
-                return;
+                log('لا يوجد اختيار، جاري تحميل القائمة تلقائيا...');
+                await goToSBCSection();
+                await getSBCList();
+                renderSBCOptions(document.getElementById('sbc-search').value);
+                sbcName = document.getElementById('sbc-select').value;
             }
 
-            // Update config from checkboxes
-            CONFIG.GOLD_DUPLICATES_TO_SBC_STORAGE = document.getElementById('gold-storage').checked;
-            CONFIG.BRONZE_SILVER_QUICK_SELL = document.getElementById('bronze-silver-sell').checked;
-            CONFIG.STOP_ON_SBC_STORAGE_FULL = document.getElementById('stop-full').checked;
+            // If user wrote search text, resolve by name directly (full/partial)
+            if (searchQuery && searchQuery.trim()) {
+                const byQueryName = resolveSBCNameFromQuery(searchQuery);
+                if (byQueryName) {
+                    sbcName = byQueryName;
+                    document.getElementById('sbc-select').value = byQueryName;
+                }
+            }
+
+            if (!sbcName || sbcName === '-1' || sbcName === '__none__') {
+                log('اختر SBC من القائمة');
+                return;
+            }
 
             document.getElementById('start-btn').style.display = 'none';
             document.getElementById('stop-btn').style.display = 'block';
             document.getElementById('refresh-btn').disabled = true;
+            document.getElementById('sbc-search').disabled = true;
 
             startAutoSBC(sbcName, cycles);
         });
@@ -1751,6 +1565,7 @@
             document.getElementById('start-btn').style.display = 'block';
             document.getElementById('stop-btn').style.display = 'none';
             document.getElementById('refresh-btn').disabled = false;
+            document.getElementById('sbc-search').disabled = false;
         });
 
         document.getElementById('copy-log-btn').addEventListener('click', () => {
@@ -1788,193 +1603,13 @@
             }
         });
 
-        // Record Mode - Click detector for debugging
-        let recordMode = false;
-        let clickListener = null;
-        let mousedownListener = null;
-        let hoverListener = null;
-        let keyListener = null;
-
-        document.getElementById('record-btn').addEventListener('click', () => {
-            recordMode = !recordMode;
-            const btn = document.getElementById('record-btn');
-
-            if (recordMode) {
-                // Activate record mode
-                btn.textContent = '🔴 وضع التسجيل: تشغيل';
-                btn.classList.add('active');
-                log('═══════════════════════════');
-                log('🔴 وضع التسجيل مفعّل');
-                log('اضغط على أي عنصر في الصفحة');
-                log('✅ Listener activated on entire page');
-                log('═══════════════════════════');
-
-                // Add click listener to capture ALL clicks (including EA Web App)
-                clickListener = function (e) {
-                    // Skip clicks on script UI to avoid spam
-                    if (e.target.closest('#sbc-auto-ui') || e.target.id === 'sbc-reopen-btn') {
-                        return;
-                    }
-
-                    const el = e.target;
-
-                    // Log element details
-                    log('═══════════════════════════');
-                    log('🎯 Element clicked:');
-                    log(`Tag: ${el.tagName}`);
-                    log(`ID: ${el.id || '(no id)'}`);
-                    log(`Class: ${el.className}`);
-                    log(`Text: ${el.textContent.trim().substring(0, 50)}`);
-                    log(`Title: ${el.title || '(no title)'}`);
-                    log(`Role: ${el.getAttribute('role') || '(no role)'}`);
-
-                    // Data attributes
-                    const dataAttrs = Object.keys(el.dataset);
-                    if (dataAttrs.length > 0) {
-                        log(`Data attrs: ${dataAttrs.join(', ')}`);
-                    } else {
-                        log('Data attrs: (none)');
-                    }
-
-                    // Parent info
-                    if (el.parentElement) {
-                        log(`Parent tag: ${el.parentElement.tagName}`);
-                        log(`Parent class: ${el.parentElement.className || '(no class)'}`);
-                    }
-
-                    // Check if in squad area
-                    const inSquad = el.closest('.ut-squad-pitch-view, .ut-squad-builder-container, .ut-sbc-squad-overview');
-                    log(`In squad area: ${inSquad ? 'YES ✅' : 'NO ❌'}`);
-
-                    log('═══════════════════════════');
-                };
-
-                // Also track mousedown in case EA uses that instead of click
-                mousedownListener = function (e) {
-                    // Skip clicks on script UI
-                    if (e.target.closest('#sbc-auto-ui') || e.target.id === 'sbc-reopen-btn') {
-                        return;
-                    }
-
-                    const el = e.target;
-                    log('💡 Mousedown on: ' + el.tagName + (el.className ? '.' + el.className.split(' ')[0] : ''));
-                };
-
-                // Add listeners with capture=true to catch ALL events
-                // Use multiple phases to ensure we catch EA's events
-                document.body.addEventListener('click', clickListener, true);
-                document.body.addEventListener('click', clickListener, false);
-                document.addEventListener('click', clickListener, true);
-                document.addEventListener('click', clickListener, false);
-                document.addEventListener('mousedown', mousedownListener, true);
-                window.addEventListener('click', clickListener, true);
-
-                // Alternative method: Hover + Keyboard to inspect element
-                let currentHoverElement = null;
-                hoverListener = function (e) {
-                    if (e.target.closest('#sbc-auto-ui') || e.target.id === 'sbc-reopen-btn') {
-                        return;
-                    }
-                    currentHoverElement = e.target;
-                };
-
-                keyListener = function (e) {
-                    // Press 'i' key to inspect hovered element
-                    if (e.key === 'i' || e.key === 'I') {
-                        if (currentHoverElement) {
-                            const el = currentHoverElement;
-                            log('═══════════════════════════');
-                            log('🔍 Element inspected (via hover+I):');
-                            log(`Tag: ${el.tagName}`);
-                            log(`ID: ${el.id || '(no id)'}`);
-                            log(`Class: ${el.className}`);
-                            log(`Text: ${el.textContent.trim().substring(0, 50)}`);
-                            log(`Title: ${el.title || '(no title)'}`);
-                            log(`Role: ${el.getAttribute('role') || '(no role)'}`);
-
-                            const dataAttrs = Object.keys(el.dataset);
-                            if (dataAttrs.length > 0) {
-                                log(`Data attrs: ${dataAttrs.join(', ')}`);
-                            } else {
-                                log('Data attrs: (none)');
-                            }
-
-                            if (el.parentElement) {
-                                log(`Parent tag: ${el.parentElement.tagName}`);
-                                log(`Parent class: ${el.parentElement.className || '(no class)'}`);
-                            }
-
-                            const inSquad = el.closest('.ut-squad-pitch-view, .ut-squad-builder-container, .ut-sbc-squad-overview');
-                            log(`In squad area: ${inSquad ? 'YES ✅' : 'NO ❌'}`);
-                            log('═══════════════════════════');
-                        }
-                    }
-                };
-
-                document.addEventListener('mouseover', hoverListener, true);
-                document.addEventListener('keydown', keyListener, true);
-
-                // Add a test to verify listener works
-                setTimeout(() => {
-                    log('✅ Listeners attached successfully');
-                    log('');
-                    log('📋 طريقتان للتسجيل:');
-                    log('1️⃣ اضغط مباشرة على الزر');
-                    log('2️⃣ حوّم الماوس على الزر واضغط حرف I');
-                    log('');
-                    log('🧪 TEST: Click the yellow box below');
-
-                    // Add test element
-                    const testDiv = document.createElement('div');
-                    testDiv.textContent = '🧪 TEST ELEMENT - Click me or hover+I';
-                    testDiv.style.cssText = 'background: #fbbf24; color: #000; padding: 8px; margin: 5px 0; cursor: pointer; border-radius: 4px; font-weight: bold;';
-                    testDiv.setAttribute('data-test', 'true');
-                    document.getElementById('log-container').insertBefore(testDiv, document.getElementById('log-container').firstChild);
-                }, 100);
-
-            } else {
-                // Deactivate record mode
-                btn.textContent = '🔍 وضع التسجيل: إيقاف';
-                btn.classList.remove('active');
-                log('⚪ وضع التسجيل متوقف');
-
-                // Remove all listeners
-                if (clickListener) {
-                    document.body.removeEventListener('click', clickListener, true);
-                    document.body.removeEventListener('click', clickListener, false);
-                    document.removeEventListener('click', clickListener, true);
-                    document.removeEventListener('click', clickListener, false);
-                    window.removeEventListener('click', clickListener, true);
-                    clickListener = null;
-                }
-                if (mousedownListener) {
-                    document.removeEventListener('mousedown', mousedownListener, true);
-                    mousedownListener = null;
-                }
-                if (hoverListener) {
-                    document.removeEventListener('mouseover', hoverListener, true);
-                    hoverListener = null;
-                }
-                if (keyListener) {
-                    document.removeEventListener('keydown', keyListener, true);
-                    keyListener = null;
-                }
-
-                // Remove test element
-                const testElement = document.querySelector('[data-test="true"]');
-                if (testElement) {
-                    testElement.remove();
-                }
-            }
-        });
-
         document.getElementById('minimize-btn').addEventListener('click', () => {
             ui.classList.add('minimized');
             // Show reopen button
             if (!document.getElementById('sbc-reopen-btn')) {
                 const reopenBtn = document.createElement('div');
                 reopenBtn.id = 'sbc-reopen-btn';
-                reopenBtn.innerHTML = '🎯';
+                reopenBtn.innerHTML = 'SBC';
                 reopenBtn.style.cssText = `
                     position: fixed;
                     top: 20px;
@@ -1987,7 +1622,8 @@
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 20px;
+                    font-size: 12px;
+                    font-weight: 700;
                     cursor: pointer;
                     box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
                     z-index: 999999;
@@ -2014,7 +1650,7 @@
             if (!document.getElementById('sbc-reopen-btn')) {
                 const reopenBtn = document.createElement('div');
                 reopenBtn.id = 'sbc-reopen-btn';
-                reopenBtn.innerHTML = '🎯';
+                reopenBtn.innerHTML = 'SBC';
                 reopenBtn.style.cssText = `
                     position: fixed;
                     top: 20px;
@@ -2027,7 +1663,8 @@
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 24px;
+                    font-size: 12px;
+                    font-weight: 700;
                     cursor: pointer;
                     box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
                     z-index: 999999;
@@ -2050,19 +1687,17 @@
 
     function updateUI() {
         document.getElementById('sbcs-count').textContent = sbcsCompleted;
-        document.getElementById('packs-count').textContent = packsOpened;
-        document.getElementById('golds-count').textContent = goldsSentToStorage;
-        document.getElementById('sells-count').textContent = quickSells;
     }
 
     function log(message) {
-        console.log(message);
+        const cleanMessage = String(message).replace(/^[🚀🎯🎁⏳🔍✅❌⚠️📤🤖🖱️🔁📋📍⏸️👆📝⏩💡📦🏪🔄]+\s*/, '');
+        console.log(cleanMessage);
 
         const logContainer = document.getElementById('log-container');
         if (logContainer) {
             const entry = document.createElement('div');
             entry.className = 'log-entry';
-            entry.textContent = `${new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} ${message}`;
+            entry.textContent = `${new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} ${cleanMessage}`;
             logContainer.appendChild(entry);
             logContainer.scrollTop = logContainer.scrollHeight;
 
