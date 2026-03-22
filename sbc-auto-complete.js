@@ -127,15 +127,20 @@
         const selectors = [
             '.ut-sbc-set-tile-view:not(.sbc-set--buttons)',
             '.ut-sbc-set-tile:not([class*="button"])',
-            '[class*="sbc-set-tile"]:not([class*="button"])',
-            '.ut-sbc-challenge-tile',
-            '.challenge-tile'
+            '[class*="sbc-set-tile"]:not([class*="button"])'
         ];
 
         const all = [];
         selectors.forEach(selector => {
             document.querySelectorAll(selector).forEach(node => {
-                if (node && node.offsetParent !== null && !node.closest('#sbc-auto-ui')) {
+                const className = (node.className || '').toString().toLowerCase();
+                const isPlaceholder =
+                    className.includes('skeleton') ||
+                    className.includes('placeholder') ||
+                    className.includes('loading') ||
+                    className.includes('empty');
+
+                if (node && node.offsetParent !== null && !node.closest('#sbc-auto-ui') && !isPlaceholder) {
                     all.push(node);
                 }
             });
@@ -265,6 +270,17 @@
         sbcTiles.forEach((tile, index) => {
             let name = '';
 
+            const cleanCandidateName = (value) => {
+                if (!value) return '';
+                return String(value)
+                    .replace(/\s+/g, ' ')
+                    .replace(/^\d+\s*of\s*\d+\s*/i, '')
+                    .replace(/^for\s+you\s*/i, '')
+                    .replace(/repeatable:\s*/gi, '')
+                    .replace(/expires?\s*.*/gi, '')
+                    .trim();
+            };
+
             // Debug: Log the tile structure for first 3
             if (index < 3) {
                 log(`\n--- Tile ${index + 1} ---`);
@@ -305,18 +321,37 @@
             if (!name) {
                 const dataName = tile.getAttribute('data-name') ||
                     tile.getAttribute('data-title') ||
-                    tile.getAttribute('aria-label');
+                    tile.getAttribute('aria-label') ||
+                    tile.getAttribute('title');
                 if (dataName && dataName.length > 2) {
-                    name = dataName;
+                    name = cleanCandidateName(dataName);
                     if (index < 3) {
                         log(`  ✓ Found from attribute: "${name}"`);
                     }
                 }
             }
 
+            // STRATEGY 2.5: Check child attributes (aria/title/data)
+            if (!name) {
+                const attrNode = tile.querySelector('[aria-label], [title], [data-name], [data-title]');
+                if (attrNode) {
+                    const attrName = attrNode.getAttribute('data-name') ||
+                        attrNode.getAttribute('data-title') ||
+                        attrNode.getAttribute('aria-label') ||
+                        attrNode.getAttribute('title');
+
+                    if (attrName && attrName.trim().length > 2) {
+                        name = cleanCandidateName(attrName);
+                        if (index < 3) {
+                            log(`  ✓ Found from child-attr: "${name}"`);
+                        }
+                    }
+                }
+            }
+
             // STRATEGY 3: Smart extraction from full text
             if (!name) {
-                const fullText = tile.textContent.trim();
+                const fullText = (tile.innerText || tile.textContent || '').trim();
                 const lines = fullText.split('\n')
                     .map(l => l.trim())
                     .filter(l => l.length > 2)
@@ -324,7 +359,7 @@
                     .filter(l => !l.match(/^(SBCs?|Challenges?|Complete|Expires?|Days?|Hours?|Minutes?|Repeatable)$/i));
 
                 if (lines.length > 0) {
-                    name = lines[0];
+                    name = cleanCandidateName(lines[0]);
                     // Cut off at common description starts
                     const cutOffWords = [
                         'Earn ', 'Get ', 'Complete ', 'Build ', 'Submit ',
@@ -350,14 +385,34 @@
                 name = name.replace(/Repeatable:\s*/gi, '').trim();
                 name = name.replace(/\s+/g, ' ').trim();
                 name = name.split('\n')[0].trim();
+                name = name.replace(/^for you$/i, '').trim();
+
+                // Remove very noisy card-like texts that are not SBC names
+                const noisy = /^\d{2,3}[A-Z]{2,}|^[A-Z]{2,3}\d{2,3}/.test(name.replace(/\s+/g, ''));
+                if (noisy) {
+                    name = '';
+                }
             }
 
-            // Fallback
+            // Fallback for unnamed entries: keep them in list with stable placeholder name
             if (!name || name.length < 2) {
-                name = `[Unknown-${index + 1}]`;
+                // Final fallback: try broader candidate from visible text lines
+                const broadText = (tile.innerText || tile.textContent || '').split('\n')
+                    .map(s => cleanCandidateName(s))
+                    .filter(s => s.length >= 3)
+                    .filter(s => !/^\d+\/\d+/.test(s))
+                    .filter(s => !/^(repeatable|completed|expires|minutes|hours|days)$/i.test(s));
+
+                if (broadText.length > 0) {
+                    name = broadText[0];
+                }
+
+                if (!name || name.length < 2) {
+                    name = `SBC ${index + 1}`;
+                }
                 extractionErrors++;
                 if (index < 3) {
-                    log(`  ✗ No valid name found`);
+                    log(`  ⚠️ Name fallback used: "${name}"`);
                 }
             } else if (index < 3) {
                 log(`  ✅ Final name: "${name}"`);
@@ -382,14 +437,11 @@
             }
 
             if (!isCompleted) {
-                const exists = sbcList.some(sbc => sbc.name.trim().toLowerCase() === name.trim().toLowerCase());
-                if (!exists) {
-                    sbcList.push({
-                        element: tile,
-                        name: name,
-                        index: sbcList.length
-                    });
-                }
+                sbcList.push({
+                    element: tile,
+                    name: name,
+                    index: sbcList.length
+                });
             }
         });
 
@@ -398,7 +450,7 @@
         // Show first 3 SBC names
         if (sbcList.length > 0) {
             if (extractionErrors > 0) {
-                log(`⚠️ ${extractionErrors} SBCs with unknown names`);
+                log(`⚠️ ${extractionErrors} تحدي بدون اسم واضح (تمت إضافتهم بأسماء بديلة)`);
             }
             log('\n📋 First 3 names:');
             sbcList.slice(0, 3).forEach((sbc, i) => {
