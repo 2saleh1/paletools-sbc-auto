@@ -1159,12 +1159,23 @@
     }
 
     function stopScript() {
-        if (!isRunning) {
-            return;
-        }
-
+        const wasRunning = isRunning;
         isRunning = false;
-        log('\n⏸️ تم إيقاف السكربت');
+
+        // Always restore UI controls (auto-stop and manual stop)
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const refreshBtn = document.getElementById('refresh-btn');
+        const searchInput = document.getElementById('sbc-search');
+
+        if (startBtn) startBtn.style.display = 'block';
+        if (stopBtn) stopBtn.style.display = 'none';
+        if (refreshBtn) refreshBtn.disabled = false;
+        if (searchInput) searchInput.disabled = false;
+
+        if (wasRunning) {
+            log('\n⏸️ تم إيقاف السكربت');
+        }
         updateUI();
     }
 
@@ -1562,10 +1573,6 @@
 
         document.getElementById('stop-btn').addEventListener('click', () => {
             stopScript();
-            document.getElementById('start-btn').style.display = 'block';
-            document.getElementById('stop-btn').style.display = 'none';
-            document.getElementById('refresh-btn').disabled = false;
-            document.getElementById('sbc-search').disabled = false;
         });
 
         document.getElementById('copy-log-btn').addEventListener('click', () => {
