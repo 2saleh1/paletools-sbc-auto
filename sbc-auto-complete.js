@@ -630,6 +630,88 @@
         }
     }
 
+    function getVisibleSubmitButton() {
+        const submitSelectors = [
+            'button.btn-standard.call-to-action',
+            'button.call-to-action',
+            'button[class*="call-to-action"]',
+            'button[class*="submit"]',
+            '.ut-squad-pitch-view button.call-to-action',
+            '.ut-sbc-challenge-details button.call-to-action',
+            '.ut-button-group button.call-to-action'
+        ];
+
+        for (const selector of submitSelectors) {
+            const btn = document.querySelector(selector);
+            if (btn && btn.offsetParent !== null) {
+                const isDisabled = btn.disabled ||
+                    btn.classList.contains('disabled') ||
+                    btn.getAttribute('disabled') !== null;
+                if (!isDisabled) {
+                    return btn;
+                }
+            }
+        }
+
+        const byText = findElementByText('Submit', 'button') ||
+            findElementByText('Exchange', 'button') ||
+            findElementByText('تقديم', 'button') ||
+            findElementByText('إرسال', 'button');
+
+        if (byText && byText.offsetParent !== null) {
+            const isDisabled = byText.disabled ||
+                byText.classList.contains('disabled') ||
+                byText.getAttribute('disabled') !== null;
+            if (!isDisabled) {
+                return byText;
+            }
+        }
+
+        return null;
+    }
+
+    async function recoverToSubmitScreen() {
+        let submitBtn = getVisibleSubmitButton();
+        if (submitBtn) return true;
+
+        log('🔧 محاولة استعادة شاشة Submit...');
+
+        // 1) Try reopening a challenge tile if visible
+        const challengeTiles = Array.from(document.querySelectorAll('.ut-sbc-challenge-tile, .challenge-tile'))
+            .filter(el => el && el.offsetParent !== null);
+
+        if (challengeTiles.length > 0) {
+            const target = challengeTiles.find(ch => !ch.querySelector('.completed, .checkmark')) || challengeTiles[0];
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            await wait(120);
+            target.click();
+            await wait(50);
+            target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+
+            for (let i = 0; i < 16; i++) {
+                await wait(150);
+                submitBtn = getVisibleSubmitButton();
+                if (submitBtn) return true;
+            }
+        }
+
+        // 2) Try back navigation one more time
+        const backBtn = document.querySelector('button.ut-navigation-button-control, .ut-navigation-button-control, [class*="navigation-button"]');
+        if (backBtn && backBtn.offsetParent !== null) {
+            backBtn.click();
+            await wait(100);
+            backBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+
+            for (let i = 0; i < 16; i++) {
+                await wait(150);
+                submitBtn = getVisibleSubmitButton();
+                if (submitBtn) return true;
+            }
+        }
+
+        return false;
+    }
+
     // ========== استخدام Smart Build ==========
     async function usePaletoolsSmartBuild() {
         log('🤖 استخدام Smart Builder من Paletools...');
@@ -871,7 +953,7 @@
                             let submitAppeared = false;
                             for (let j = 0; j < 20; j++) { // 20 * 150ms = 3 seconds max
                                 await wait(150);
-                                const testSubmit = document.querySelector('button.btn-standard.call-to-action, button.call-to-action');
+                                const testSubmit = getVisibleSubmitButton();
                                 if (testSubmit && testSubmit.offsetParent !== null) {
                                     submitAppeared = true;
                                     log('✅ تم الرجوع إلى عرض SBC الرئيسي - ظهر زر Submit');
@@ -884,7 +966,13 @@
                             }
 
                             if (!submitAppeared) {
-                                log('⚠️ لم يظهر زر Submit بعد الرجوع - المتابعة على أي حال...');
+                                const recovered = await recoverToSubmitScreen();
+                                if (recovered) {
+                                    log('✅ تم استعادة شاشة Submit بنجاح');
+                                } else {
+                                    log('❌ لم يظهر زر Submit بعد الرجوع وفشلت الاستعادة');
+                                    return false;
+                                }
                             }
 
                             break;
@@ -935,41 +1023,18 @@
         // Try to find Submit button with multiple strategies
         log('🔍 البحث عن زر Submit...');
 
-        const submitSelectors = [
-            'button.btn-standard.call-to-action',
-            'button.call-to-action',
-            'button[class*="call-to-action"]',
-            'button[class*="submit"]',
-            '.ut-squad-pitch-view button.call-to-action',
-            '.ut-sbc-challenge-details button.call-to-action',
-            '.ut-button-group button.call-to-action'
-        ];
-
-        let submitBtn = null;
-        for (const selector of submitSelectors) {
-            const btn = document.querySelector(selector);
-            if (btn && btn.offsetParent !== null) {
-                const isDisabled = btn.disabled ||
-                    btn.classList.contains('disabled') ||
-                    btn.getAttribute('disabled') !== null;
-
-                if (!isDisabled) {
-                    submitBtn = btn;
-                    log(`✅ تم العثور على زر Submit: ${selector}`);
-                    break;
-                }
-            }
+        let submitBtn = getVisibleSubmitButton();
+        if (submitBtn) {
+            log('✅ تم العثور على زر Submit');
         }
 
-        // Fallback: Search by text
         if (!submitBtn) {
-            submitBtn = findElementByText('Submit', 'button') ||
-                findElementByText('Exchange', 'button') ||
-                findElementByText('تقديم', 'button') ||
-                findElementByText('إرسال', 'button');
-
-            if (submitBtn && submitBtn.offsetParent !== null) {
-                log('✅ تم العثور على زر Submit (عن طريق النص)');
+            const recovered = await recoverToSubmitScreen();
+            if (recovered) {
+                submitBtn = getVisibleSubmitButton();
+                if (submitBtn) {
+                    log('✅ تم العثور على زر Submit بعد الاستعادة');
+                }
             }
         }
 
@@ -1304,12 +1369,14 @@
         const detectedName = detectCurrentOpenedSBCName();
         const selectedValid = selectedName && selectedName !== '__none__' && selectedName !== '-1' && isMeaningfulSBCName(selectedName);
         const fallbackName = selectedValid ? selectedName : openedModeTargetName;
-        const effectiveName = isMeaningfulSBCName(detectedName) ? detectedName : (fallbackName || 'SBC الحالي');
+
+        // In opened mode, keep user-selected name as priority to avoid mismatch confusion.
+        const effectiveName = selectedValid ? selectedName : (isMeaningfulSBCName(detectedName) ? detectedName : (fallbackName || 'SBC الحالي'));
         currentSBC = { name: effectiveName };
-        if (isMeaningfulSBCName(detectedName)) {
+        if (selectedValid) {
+            log(`✅ الاسم المعتمد من القائمة: ${selectedName}`);
+        } else if (isMeaningfulSBCName(detectedName)) {
             log(`✅ تم التعرف على التحدي المفتوح: ${detectedName}`);
-        } else if (selectedValid) {
-            log(`✅ استخدام الاسم المختار من القائمة: ${selectedName}`);
         } else if (openedModeTargetName) {
             log(`✅ استخدام الاسم المحفوظ من الدورة السابقة: ${openedModeTargetName}`);
         } else {
