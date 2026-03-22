@@ -540,6 +540,7 @@
         const maxAttempts = 5;
 
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            if (!isRunning) return false;
             log(`🖱️ محاولة ${attempt}/${maxAttempts} لفتح SBC...`);
 
             // Method 1: mousedown/mouseup
@@ -562,6 +563,7 @@
             const maxPollAttempts = 15; // 15 * 200ms = 3 seconds
 
             while (pollAttempts < maxPollAttempts) {
+                if (!isRunning) return false;
                 await wait(200);
                 const check = document.querySelector('.ut-sbc-challenge-tile, .challenge-tile, .ut-squad-builder-container, .ut-squad-pitch-view');
 
@@ -1531,18 +1533,18 @@
                 if (isSBCChallengeOpen()) {
                     success = await completeOpenedChallengeCycle();
                 } else {
-                    // Fallback path: try to resolve name again from current page context.
-                    const detectedName = detectCurrentOpenedSBCName();
-                    if (isMeaningfulSBCName(detectedName)) {
-                        currentSBC = { name: detectedName };
-                    }
+                    // Fallback path: DO NOT re-detect from list page to avoid drifting to unrelated SBC.
+                    const knownName = isMeaningfulSBCName(openedModeTargetName)
+                        ? openedModeTargetName
+                        : (isMeaningfulSBCName(currentSBC?.name) ? currentSBC.name : '');
 
-                    const knownName = isMeaningfulSBCName(currentSBC?.name) ? currentSBC.name : openedModeTargetName;
                     if (!knownName) {
                         log('⚠️ لم أجد التحدي مفتوحاً ولا اسم واضح لإعادة الفتح تلقائياً');
                         log('💡 افتح نفس التحدي يدوياً ثم اضغط "بدء من التحدي المفتوح"');
                         break;
                     }
+
+                    log(`✅ متابعة نفس التحدي المفتوح السابق: ${knownName}`);
 
                     success = await completeSBCCycle(knownName);
                 }
