@@ -1534,21 +1534,20 @@
                     tile.click();
                     await wait(200);
                     tile.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-                    await wait(1000); // Give page time to load
                     
-                    // Verify the challenge is actually open
+                    // Poll for the challenge to actually open (like goToSBCSection does)
+                    log('⏳ انتظار فتح التحدي...');
+                    let openAttempts = 0;
+                    while (openAttempts < 20 && !isSBCChallengeOpen()) {
+                        await wait(300);
+                        openAttempts++;
+                    }
+                    
                     if (isSBCChallengeOpen()) {
-                        log(`✅ تم فتح التحدي: ${targetName}`);
+                        log(`✅ تم فتح التحدي: ${targetName} (بعد ${openAttempts * 300}ms)`);
                         return true;
                     } else {
-                        log(`⚠️ الـ tile تم النقر عليه لكن التحدي لم يفتح بعد`);
-                        await wait(800);
-                        
-                        // Try one more verification
-                        if (isSBCChallengeOpen()) {
-                            log(`✅ تم فتح التحدي في المحاولة الثانية: ${targetName}`);
-                            return true;
-                        }
+                        log(`❌ فشل فتح التحدي بعد انتظار ${openAttempts * 300}ms`);
                     }
                     return false;
                 }
