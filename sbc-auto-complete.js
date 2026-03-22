@@ -1616,7 +1616,7 @@
                 if (isSBCChallengeOpen()) {
                     success = await completeOpenedChallengeCycle();
                 } else {
-                    // Fallback path: Try to find the tile directly in DOM before using list
+                    // Fallback path: Try to find the tile and reopen it
                     const knownName = isMeaningfulSBCName(openedModeTargetName)
                         ? openedModeTargetName
                         : (isMeaningfulSBCName(currentSBC?.name) ? currentSBC.name : '');
@@ -1629,22 +1629,36 @@
 
                     log(`✅ متابعة نفس التحدي المفتوح السابق: ${knownName}`);
 
-                    // Try to find tile by name directly in DOM first
+                    // Go to SBC section
                     const inSBC = await goToSBCSection();
                     if (!inSBC) {
                         log('❌ فشل الانتقال إلى واجهة SBC');
                         break;
                     }
 
-                    const tileFound = await findAndOpenSBCTileByName(knownName);
-                    if (tileFound) {
-                        await wait(1200); // Wait longer for challenge page to fully load
-                        success = await completeOpenedChallengeCycle();
+                    // Load the list to find the challenge
+                    await getSBCList();
+                    log(`📋 تم تحميل ${sbcList.length} SBC`);
+
+                    // Try to find in the loaded list using standard method
+                    const resolvedIndex = resolveSBCIndexByName(knownName);
+                    if (resolvedIndex >= 0) {
+                        log(`✅ وجدت في القائمة (index: ${resolvedIndex})`);
+                        const opened = await selectAndOpenSBC(resolvedIndex);
+                        if (opened) {
+                            await wait(1000); // Wait for challenge to load
+                            success = await completeOpenedChallengeCycle();
+                        }
                     } else {
-                        // Fallback to list search if direct search fails
-                        log('💡 محاولة البحث في القائمة المحملة...');
-                        await getSBCList();
-                        success = await completeSBCCycle(knownName);
+                        // Fallback: Try direct tile search if not in loaded list
+                        log(`❌ لم تجد في القائمة المحملة، محاولة البحث المباشر...`);
+                        const tileFound = await findAndOpenSBCTileByName(knownName);
+                        if (tileFound) {
+                            await wait(1200); // Wait for challenge page to load
+                            success = await completeOpenedChallengeCycle();
+                        } else {
+                            log('❌ فشل إيجاد التحدي في المحاولات');
+                        }
                     }
                 }
             }
