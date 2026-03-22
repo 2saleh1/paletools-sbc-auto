@@ -98,6 +98,31 @@
             .replace(/[\u064B-\u065F]/g, '');
     }
 
+    function sanitizeSBCName(input) {
+        let text = String(input || '')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        // Drop progress prefixes like: "1 of 4"
+        text = text.replace(/^\d+\s*of\s*\d+\s*/i, '');
+
+        // Drop noisy UI fragments often appended to tile text
+        text = text
+            .replace(/repeatable:\s*/gi, '')
+            .replace(/expires?\s.*$/i, '')
+            .replace(/earn\s.*$/i, '')
+            .replace(/complete\s.*$/i, '')
+            .replace(/^for\s+you\s*/i, '')
+            .trim();
+
+        return text;
+    }
+
+    function extractRatingTokens(input) {
+        const normalized = normalizeSearchText(sanitizeSBCName(input));
+        return normalized.match(/\b\d{2,3}\+?\b/g) || [];
+    }
+
     function isMeaningfulSBCName(name) {
         const n = normalizeSearchText(name);
         if (!n || n.length < 4) return false;
@@ -1312,7 +1337,7 @@
 
         for (const selector of selectors) {
             const el = document.querySelector(selector);
-            const text = (el?.textContent || '').trim();
+            const text = sanitizeSBCName((el?.textContent || '').trim());
             if (text && text.length > 2 && !/^submit|exchange$/i.test(text) && isMeaningfulSBCName(text)) {
                 return text;
             }
@@ -1327,7 +1352,9 @@
             .filter(text => !/^(squad|challenge|challenges)$/i.test(text));
 
         if (headingCandidates.length > 0) {
-            const meaningful = headingCandidates.find(text => isMeaningfulSBCName(text));
+            const meaningful = headingCandidates
+                .map(text => sanitizeSBCName(text))
+                .find(text => isMeaningfulSBCName(text));
             if (meaningful) {
                 return meaningful;
             }
@@ -1347,21 +1374,14 @@
             return false;
         }
 
-        const selectedName = document.getElementById('sbc-select')?.value;
-        const detectedName = detectCurrentOpenedSBCName();
-        const selectedValid = selectedName && selectedName !== '__none__' && selectedName !== '-1' && isMeaningfulSBCName(selectedName);
-        const fallbackName = selectedValid ? selectedName : openedModeTargetName;
+        const detectedName = sanitizeSBCName(detectCurrentOpenedSBCName());
+        const fallbackName = sanitizeSBCName(openedModeTargetName);
 
         // In opened mode, always prioritize the challenge that is currently open on screen.
         const effectiveName = isMeaningfulSBCName(detectedName) ? detectedName : (fallbackName || 'SBC الحالي');
         currentSBC = { name: effectiveName };
         if (isMeaningfulSBCName(detectedName)) {
             log(`✅ تم التعرف على التحدي المفتوح: ${detectedName}`);
-            if (selectedValid && normalizeSearchText(selectedName) !== normalizeSearchText(detectedName)) {
-                log(`ℹ️ تم تجاهل اختيار القائمة واستخدام التحدي المفتوح: ${detectedName}`);
-            }
-        } else if (selectedValid) {
-            log(`✅ استخدام الاسم المختار من القائمة: ${selectedName}`);
         } else if (openedModeTargetName) {
             log(`✅ استخدام الاسم المحفوظ من الدورة السابقة: ${openedModeTargetName}`);
         } else {
@@ -1458,9 +1478,11 @@
     // ========== البدء ==========
     async function findAndOpenSBCTileByName(targetName) {
         // البحث عن tile SBC في DOM من خلال البحث المباشر في نصوص العناصر الفعلية
-        log(`🔍 البحث المباشر في DOM عن: ${targetName}`);
+        const safeTargetName = sanitizeSBCName(targetName);
+        log(`🔍 البحث المباشر في DOM عن: ${safeTargetName}`);
 
-        const normalized = normalizeSearchText(targetName);
+        const normalized = normalizeSearchText(safeTargetName);
+        const targetRatings = extractRatingTokens(safeTargetName);
 
         // Helper function to search in visible tiles by direct DOM text content
         const searchInCurrentTiles = async () => {
@@ -1470,18 +1492,30 @@
             log(`🔎 فحص ${allTiles.length} tile في الصفحة...`);
 
             for (const tile of allTiles) {
-                const tileText = (tile.textContent || '').trim();
-                const tileNormalized = normalizeSearchText(tileText);
+                const titleNode = tile.querySelector('.title, .ut-sbc-set-tile-name, [class*="tile-name"], h1, h2, h3');
+                const tileRawName = sanitizeSBCName((titleNode?.textContent || tile.innerText || tile.textContent || '').trim());
+                const tileNormalized = normalizeSearchText(tileRawName);
 
-                // ابحث عن الاسم الكامل أو أي جزء منه
-                // المهم: ابحث في النص الفعلي من الـ DOM ولا تعتمد على الأسماء المحفوظة
-                const hasExactMatch = tileNormalized.includes(normalized);
-                const hasKeywordMatch = normalized.split(' ')
-                    .filter(word => word.length > 3)
-                    .every(word => tileNormalized.includes(word));
+                if (!tileNormalized || !isMeaningfulSBCName(tileRawName)) {
+                    continue;
+                }
+
+                // If target has rating tokens (80+, 88, ...), enforce rating match to avoid wrong SBC.
+                const tileRatings = extractRatingTokens(tileRawName);
+                const ratingMismatch = targetRatings.length > 0 && !targetRatings.some(rt => tileRatings.includes(rt));
+                if (ratingMismatch) {
+                    continue;
+                }
+
+                const hasExactMatch = tileNormalized === normalized;
+                const hasStrongIncludes = tileNormalized.includes(normalized) || normalized.includes(tileNormalized);
+
+                const targetTokens = normalized.split(' ').filter(word => word.length >= 4);
+                const matchedTokens = targetTokens.filter(word => tileNormalized.includes(word));
+                const hasStrongTokenMatch = targetTokens.length > 0 && matchedTokens.length >= Math.max(2, targetTokens.length - 1);
                 
-                if (hasExactMatch || hasKeywordMatch) {
-                    log(`✅ وجدت: ${tileText.substring(0, 50)}...`);
+                if (hasExactMatch || hasStrongIncludes || hasStrongTokenMatch) {
+                    log(`✅ وجدت: ${tileRawName}`);
                     
                     // Scroll into view and click
                     tile.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1581,8 +1615,8 @@
                 } else {
                     // Fallback path: Try to find the tile and reopen it
                     const knownName = isMeaningfulSBCName(openedModeTargetName)
-                        ? openedModeTargetName
-                        : (isMeaningfulSBCName(currentSBC?.name) ? currentSBC.name : '');
+                        ? sanitizeSBCName(openedModeTargetName)
+                        : (isMeaningfulSBCName(currentSBC?.name) ? sanitizeSBCName(currentSBC.name) : '');
 
                     if (!knownName) {
                         log('⚠️ لم أجد التحدي مفتوحاً ولا اسم واضح لإعادة الفتح تلقائياً');
