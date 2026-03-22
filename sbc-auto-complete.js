@@ -123,6 +123,85 @@
         return -1;
     }
 
+    function getSbcTileNodes() {
+        const selectors = [
+            '.ut-sbc-set-tile-view:not(.sbc-set--buttons)',
+            '.ut-sbc-set-tile:not([class*="button"])',
+            '[class*="sbc-set-tile"]:not([class*="button"])',
+            '.ut-sbc-challenge-tile',
+            '.challenge-tile'
+        ];
+
+        const all = [];
+        selectors.forEach(selector => {
+            document.querySelectorAll(selector).forEach(node => {
+                if (node && node.offsetParent !== null && !node.closest('#sbc-auto-ui')) {
+                    all.push(node);
+                }
+            });
+        });
+
+        // De-duplicate by DOM reference
+        return Array.from(new Set(all));
+    }
+
+    async function collectSbcTilesWithScroll() {
+        const seedTiles = getSbcTileNodes();
+
+        if (!seedTiles.length) {
+            return [];
+        }
+
+        // Try to find the nearest scrollable container for SBC tiles
+        let scrollContainer = seedTiles[0].closest('.ut-pinned-list, .ut-item-view, [class*="scroll"], [class*="list"], [class*="viewport"]');
+        if (!scrollContainer || scrollContainer === document.body) {
+            scrollContainer = document.scrollingElement || document.documentElement;
+        }
+
+        const isWindowScroll = scrollContainer === document.scrollingElement || scrollContainer === document.documentElement;
+        const originalScrollTop = scrollContainer.scrollTop || 0;
+
+        const seen = new Set();
+        let stableRounds = 0;
+        let previousCount = -1;
+
+        for (let round = 0; round < 18; round++) {
+            const nowTiles = getSbcTileNodes();
+            nowTiles.forEach(tile => seen.add(tile));
+
+            if (seen.size === previousCount) {
+                stableRounds++;
+            } else {
+                stableRounds = 0;
+                previousCount = seen.size;
+            }
+
+            if (stableRounds >= 3) {
+                break;
+            }
+
+            const currentTop = scrollContainer.scrollTop || 0;
+            const visibleHeight = isWindowScroll ? window.innerHeight : scrollContainer.clientHeight;
+            const scrollHeight = isWindowScroll
+                ? Math.max(document.body.scrollHeight, document.documentElement.scrollHeight)
+                : scrollContainer.scrollHeight;
+            const maxTop = Math.max(0, scrollHeight - visibleHeight);
+
+            if (currentTop >= maxTop - 8) {
+                break;
+            }
+
+            scrollContainer.scrollTop = Math.min(maxTop, currentTop + Math.max(visibleHeight * 0.9, 260));
+            await wait(220);
+        }
+
+        // Return back to where user was
+        scrollContainer.scrollTop = originalScrollTop;
+        await wait(120);
+
+        return Array.from(seen);
+    }
+
     async function waitForRewardsToClose(timeout = 6000) {
         const startTime = Date.now();
         while (Date.now() - startTime < timeout) {
@@ -173,18 +252,12 @@
     async function getSBCList() {
         log('📋 Loading SBC list...');
 
-        await wait(900);
+        await wait(700);
 
-        // More precise selector - avoid buttons and non-SBC elements
-        let sbcTiles = document.querySelectorAll('.ut-sbc-set-tile-view:not(.sbc-set--buttons)');
-        if (sbcTiles.length === 0) {
-            sbcTiles = document.querySelectorAll('.ut-sbc-set-tile:not([class*="button"])');
-        }
-        if (sbcTiles.length === 0) {
-            sbcTiles = document.querySelectorAll('[class*="sbc-set-tile"]:not([class*="button"])');
-        }
+        // Collect tiles from current viewport + lazy-loaded tiles via auto-scroll
+        const sbcTiles = await collectSbcTilesWithScroll();
 
-        log(`🔍 Found ${sbcTiles.length} SBC tiles`);
+        log(`🔍 Found ${sbcTiles.length} SBC tiles (after full scan)`);
 
         sbcList = [];
         let extractionErrors = 0;
@@ -309,11 +382,14 @@
             }
 
             if (!isCompleted) {
-                sbcList.push({
-                    element: tile,
-                    name: name,
-                    index: sbcList.length
-                });
+                const exists = sbcList.some(sbc => sbc.name.trim().toLowerCase() === name.trim().toLowerCase());
+                if (!exists) {
+                    sbcList.push({
+                        element: tile,
+                        name: name,
+                        index: sbcList.length
+                    });
+                }
             }
         });
 
