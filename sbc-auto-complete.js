@@ -121,26 +121,6 @@
         return true;
     }
 
-    function resolveSBCNameFromQuery(queryText) {
-        const query = normalizeSearchText(queryText);
-        if (!query || !sbcList.length) return null;
-
-        const byExact = sbcList.find(sbc => normalizeSearchText(sbc.name) === query);
-        if (byExact) return byExact.name;
-
-        const startsWithMatches = sbcList.filter(sbc => normalizeSearchText(sbc.name).startsWith(query));
-        if (startsWithMatches.length === 1) return startsWithMatches[0].name;
-
-        const includesMatches = sbcList.filter(sbc => normalizeSearchText(sbc.name).includes(query));
-        if (includesMatches.length === 1) return includesMatches[0].name;
-
-        // If multiple matches, return first to keep flow smooth.
-        if (startsWithMatches.length > 0) return startsWithMatches[0].name;
-        if (includesMatches.length > 0) return includesMatches[0].name;
-
-        return null;
-    }
-
     function resolveSBCIndexByName(targetName) {
         if (!targetName || !sbcList.length) return -1;
 
@@ -1476,36 +1456,6 @@
     }
 
     // ========== البدء ==========
-    async function startAutoSBC(targetSBCName, cycles = 1) {
-        if (isRunning) {
-            log('⚠️ السكربت يعمل بالفعل!');
-            return;
-        }
-
-        const totalCycles = Number.isFinite(cycles) ? cycles : 1;
-
-        isRunning = true;
-        log(`🚀 بدء SBC Auto Completer... (التكرارات: ${totalCycles})\n`);
-        updateUI();
-
-        for (let i = 0; i < totalCycles; i++) {
-            if (!isRunning) break;
-
-            log(`🔁 دورة ${i + 1}/${totalCycles}`);
-
-            const success = await completeSBCCycle(targetSBCName);
-
-            if (!success) {
-                log('❌ فشلت الدورة الحالية - إيقاف السكربت');
-                break;
-            }
-
-            await wait(CONFIG.WAIT_TIME);
-        }
-
-        stopScript();
-    }
-
     async function findAndOpenSBCTileByName(targetName) {
         // البحث عن tile SBC في DOM من خلال البحث المباشر في نصوص العناصر الفعلية
         log(`🔍 البحث المباشر في DOM عن: ${targetName}`);
@@ -1757,21 +1707,13 @@
         const wasRunning = isRunning;
         isRunning = false;
 
-        // Always restore UI controls (auto-stop and manual stop)
+        // Always restore UI controls
         const startBtn = document.getElementById('start-btn');
         const stopBtn = document.getElementById('stop-btn');
-        const refreshBtn = document.getElementById('refresh-btn');
-        const searchInput = document.getElementById('sbc-search');
-        const selectInput = document.getElementById('sbc-select');
-        const startCurrentBtn = document.getElementById('start-current-btn');
         const startDailyBtn = document.getElementById('start-daily-btn');
 
         if (startBtn) startBtn.style.display = 'block';
         if (stopBtn) stopBtn.style.display = 'none';
-        if (refreshBtn) refreshBtn.disabled = false;
-        if (searchInput) searchInput.disabled = false;
-        if (selectInput) selectInput.disabled = false;
-        if (startCurrentBtn) startCurrentBtn.disabled = false;
         if (startDailyBtn) startDailyBtn.disabled = false;
 
         if (wasRunning) {
@@ -2058,25 +2000,11 @@
             </div>
             
             <div class="sbc-selector">
-                <label>بحث SBC:</label>
-                <input type="text" id="sbc-search" placeholder="اكتب اسم التحدي...">
-            </div>
-
-            <div class="sbc-selector">
-                <label>اختر SBC:</label>
-                <select id="sbc-select">
-                    <option value="-1">-- حمّل القائمة أولاً --</option>
-                </select>
-            </div>
-            
-            <div class="sbc-selector">
                 <label>عدد التكرارات:</label>
                 <input type="number" id="cycles-input" value="1" min="1" max="100">
             </div>
             
-            <button class="btn-refresh" id="refresh-btn">تحميل القائمة</button>
-            <button class="btn-start" id="start-btn">بدء</button>
-            <button class="btn-refresh" id="start-current-btn">بدء من التحدي المفتوح</button>
+            <button class="btn-start" id="start-btn">بدء (من التحدي المفتوح)</button>
             <button class="btn-refresh" id="start-daily-btn">تشغيل اليوميات (Bronze -> Silver -> Gold)</button>
             <button class="btn-stop" id="stop-btn" style="display:none">إيقاف</button>
             <button class="btn-minimize" id="minimize-btn">تصغير</button>
@@ -2119,66 +2047,9 @@
             }
         };
 
-        document.getElementById('refresh-btn').addEventListener('click', async () => {
-            log('تحميل قائمة SBC...');
-            await goToSBCSection();
-            await wait(400);
-            await getSBCList();
-            renderSBCOptions(document.getElementById('sbc-search').value);
-            log(`تم تحميل ${sbcList.length} SBC`);
-        });
 
-        document.getElementById('sbc-search').addEventListener('input', (e) => {
-            renderSBCOptions(e.target.value);
-        });
 
-        document.getElementById('sbc-search').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                renderSBCOptions(e.target.value);
-            }
-        });
-
-        document.getElementById('start-btn').addEventListener('click', async () => {
-            let sbcName = document.getElementById('sbc-select').value;
-            const searchQuery = document.getElementById('sbc-search').value;
-            const cyclesRaw = document.getElementById('cycles-input').value;
-            const cycles = parseCyclesValue(cyclesRaw);
-
-            if (!sbcName || sbcName === '-1' || sbcName === '__none__') {
-                log('لا يوجد اختيار، جاري تحميل القائمة تلقائيا...');
-                await goToSBCSection();
-                await getSBCList();
-                renderSBCOptions(document.getElementById('sbc-search').value);
-                sbcName = document.getElementById('sbc-select').value;
-            }
-
-            // If user wrote search text, resolve by name directly (full/partial)
-            if (searchQuery && searchQuery.trim()) {
-                const byQueryName = resolveSBCNameFromQuery(searchQuery);
-                if (byQueryName) {
-                    sbcName = byQueryName;
-                    document.getElementById('sbc-select').value = byQueryName;
-                }
-            }
-
-            if (!sbcName || sbcName === '-1' || sbcName === '__none__') {
-                log('اختر SBC من القائمة');
-                return;
-            }
-
-            document.getElementById('start-btn').style.display = 'none';
-            document.getElementById('stop-btn').style.display = 'block';
-            document.getElementById('refresh-btn').disabled = true;
-            document.getElementById('sbc-search').disabled = true;
-            document.getElementById('sbc-select').disabled = true;
-            document.getElementById('start-current-btn').disabled = true;
-            document.getElementById('start-daily-btn').disabled = true;
-
-            startAutoSBC(sbcName, cycles);
-        });
-
-        document.getElementById('start-current-btn').addEventListener('click', () => {
+        document.getElementById('start-btn').addEventListener('click', () => {
             const cyclesRaw = document.getElementById('cycles-input').value;
             const cycles = parseCyclesValue(cyclesRaw);
 
@@ -2189,23 +2060,14 @@
                 openedModeTargetName = detectedOpenedName;
             }
 
-            // Keep selected name as fallback for repeat cycles.
-            const selectedName = document.getElementById('sbc-select').value;
-            if (!openedModeTargetName && selectedName && selectedName !== '__none__' && selectedName !== '-1' && isMeaningfulSBCName(selectedName)) {
-                currentSBC = { name: selectedName };
-                openedModeTargetName = selectedName;
-            }
-
             document.getElementById('start-btn').style.display = 'none';
             document.getElementById('stop-btn').style.display = 'block';
-            document.getElementById('refresh-btn').disabled = true;
-            document.getElementById('sbc-search').disabled = true;
-            document.getElementById('sbc-select').disabled = true;
-            document.getElementById('start-current-btn').disabled = true;
             document.getElementById('start-daily-btn').disabled = true;
 
             startFromOpenedSBC(cycles);
         });
+
+
 
         document.getElementById('start-daily-btn').addEventListener('click', () => {
             const cyclesRaw = document.getElementById('cycles-input').value;
@@ -2213,10 +2075,6 @@
 
             document.getElementById('start-btn').style.display = 'none';
             document.getElementById('stop-btn').style.display = 'block';
-            document.getElementById('refresh-btn').disabled = true;
-            document.getElementById('sbc-search').disabled = true;
-            document.getElementById('sbc-select').disabled = true;
-            document.getElementById('start-current-btn').disabled = true;
             document.getElementById('start-daily-btn').disabled = true;
 
             startDailySBCs(cycles);
