@@ -1513,7 +1513,7 @@
         const normalized = normalizeSearchText(targetName);
 
         // Helper function to search in visible tiles
-        const searchInCurrentTiles = () => {
+        const searchInCurrentTiles = async () => {
             const allTiles = Array.from(document.querySelectorAll('.ut-sbc-set-tile-view'))
                 .filter(tile => !tile.closest('#sbc-auto-ui'));
 
