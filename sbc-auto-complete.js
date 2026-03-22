@@ -2041,8 +2041,7 @@
             <button class="btn-start" id="start-btn">بدء (من التحدي المفتوح)</button>
             <button class="btn-refresh" id="start-daily-btn">تشغيل اليوميات (Bronze -> Silver -> Gold)</button>
             <button class="btn-stop" id="stop-btn" style="display:none">إيقاف</button>
-            <button class="btn-minimize" id="minimize-btn">تصغير</button>
-            <button class="btn-close" id="close-btn">إغلاق</button>
+            <button class="btn-minimize" id="minimize-btn">إخفاء</button>
             
             <div class="log-header">
                 <span class="log-title">السجل</span>
@@ -2153,85 +2152,51 @@
             }
         });
 
+        function showReopenButton() {
+            if (document.getElementById('sbc-reopen-btn')) return;
+
+            const reopenBtn = document.createElement('div');
+            reopenBtn.id = 'sbc-reopen-btn';
+            reopenBtn.innerHTML = 'SBC';
+            reopenBtn.style.cssText = `
+                position: fixed;
+                top: 14px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 48px;
+                height: 48px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 12px;
+                font-weight: 700;
+                cursor: pointer;
+                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+                z-index: 999999;
+                transition: all 0.2s;
+            `;
+
+            reopenBtn.addEventListener('mouseenter', () => {
+                reopenBtn.style.transform = 'translateX(-50%) scale(1.08)';
+            });
+            reopenBtn.addEventListener('mouseleave', () => {
+                reopenBtn.style.transform = 'translateX(-50%) scale(1)';
+            });
+            reopenBtn.addEventListener('click', () => {
+                ui.classList.remove('minimized');
+                ui.style.display = 'block';
+                reopenBtn.remove();
+            });
+
+            document.body.appendChild(reopenBtn);
+        }
+
         document.getElementById('minimize-btn').addEventListener('click', () => {
             ui.classList.add('minimized');
-            // Show reopen button
-            if (!document.getElementById('sbc-reopen-btn')) {
-                const reopenBtn = document.createElement('div');
-                reopenBtn.id = 'sbc-reopen-btn';
-                reopenBtn.innerHTML = 'SBC';
-                reopenBtn.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    left: 20px;
-                    width: 45px;
-                    height: 45px;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    color: white;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 12px;
-                    font-weight: 700;
-                    cursor: pointer;
-                    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-                    z-index: 999999;
-                    transition: all 0.3s;
-                `;
-                reopenBtn.addEventListener('mouseenter', () => {
-                    reopenBtn.style.transform = 'scale(1.1)';
-                });
-                reopenBtn.addEventListener('mouseleave', () => {
-                    reopenBtn.style.transform = 'scale(1)';
-                });
-                reopenBtn.addEventListener('click', () => {
-                    ui.classList.remove('minimized');
-                    reopenBtn.remove();
-                });
-                document.body.appendChild(reopenBtn);
-            }
-        });
-
-        document.getElementById('close-btn').addEventListener('click', () => {
-            stopScript();
-            ui.style.display = 'none';
-            // Show reopen button
-            if (!document.getElementById('sbc-reopen-btn')) {
-                const reopenBtn = document.createElement('div');
-                reopenBtn.id = 'sbc-reopen-btn';
-                reopenBtn.innerHTML = 'SBC';
-                reopenBtn.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    left: 20px;
-                    width: 50px;
-                    height: 50px;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    color: white;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 12px;
-                    font-weight: 700;
-                    cursor: pointer;
-                    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-                    z-index: 999999;
-                    transition: all 0.3s;
-                `;
-                reopenBtn.addEventListener('mouseenter', () => {
-                    reopenBtn.style.transform = 'scale(1.1)';
-                });
-                reopenBtn.addEventListener('mouseleave', () => {
-                    reopenBtn.style.transform = 'scale(1)';
-                });
-                reopenBtn.addEventListener('click', () => {
-                    ui.style.display = 'block';
-                    reopenBtn.remove();
-                });
-                document.body.appendChild(reopenBtn);
-            }
+            showReopenButton();
         });
     }
 
