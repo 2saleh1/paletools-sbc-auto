@@ -857,9 +857,22 @@
         log('⏳ انتظار ظهور شاشة المكافآت...');
         await wait(500);
 
+        const clickSafe = async (el) => {
+            if (!el || el.offsetParent === null) return;
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            await wait(120);
+            el.click();
+            await wait(40);
+            el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+            await wait(30);
+            el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+            await wait(20);
+            el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+        };
+
         // Wait until reward UI is really visible to avoid clicking unrelated elements
         let rewardUIReady = false;
-        for (let i = 0; i < 30; i++) { // 30 * 200ms = 6 seconds
+        for (let i = 0; i < 40; i++) { // 40 * 200ms = 8 seconds
             const rewardRoot = document.querySelector('.ut-pack-tile, .ut-tile-pack, .pack-item, .ut-reward-item, .ut-store-pack-details-view');
             const claimBtnVisible = findElementByText('Claim Rewards', 'button') || findElementByText('Claim', 'button');
 
@@ -875,7 +888,33 @@
             return false;
         }
 
-        // FIRST: Look for reward pack/item to click (SBC rewards appear as packs)
+        // STEP 1: Click Claim Rewards first (most reliable entry point in EA flow)
+        let claimButton = null;
+        const rewardButtons = Array.from(document.querySelectorAll('button'))
+            .filter(btn => btn && btn.offsetParent !== null && !btn.closest('#sbc-auto-ui'));
+
+        for (const btn of rewardButtons) {
+            const txt = (btn.textContent || '').trim().toLowerCase();
+            if (
+                txt.includes('claim rewards') ||
+                txt === 'claim' ||
+                txt.includes('collect') ||
+                txt.includes('استلام') ||
+                txt.includes('مطالبة')
+            ) {
+                claimButton = btn;
+                break;
+            }
+        }
+
+        if (claimButton) {
+            log('✅ تم العثور على زر Claim Rewards');
+            log('🖱️ الضغط على زر Claim Rewards...');
+            await clickSafe(claimButton);
+            await wait(600);
+        }
+
+        // STEP 2: If a reward pack tile appears, click it
         log('🔍 البحث عن جائزة البكج...');
 
         const packSelectors = [
@@ -883,14 +922,13 @@
             '.ut-tile-pack',
             '.pack-item',
             '.ut-reward-item',
-            '.ut-store-pack-details-view',
-            '.ut-item-view'
+            '.ut-store-pack-details-view'
         ];
 
         let rewardPack = null;
         for (const selector of packSelectors) {
             const candidates = Array.from(document.querySelectorAll(selector))
-                .filter(el => el && el.offsetParent !== null && !el.closest('#sbc-auto-ui'));
+                .filter(el => el && el.offsetParent !== null && !el.closest('#sbc-auto-ui') && !el.closest('.ut-squad-pitch-view'));
 
             // Prefer candidates that actually look like reward tiles
             const pack = candidates.find(el => {
@@ -943,23 +981,12 @@
 
             log('🎁 الضغط على جائزة البكج...');
 
-            // Scroll to pack
-            rewardPack.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            await wait(200);
-
-            // Highlight pack
+            // Highlight pack then click
             rewardPack.style.outline = '3px solid #fbbf24';
             await wait(150);
             rewardPack.style.outline = '';
 
-            // Click pack using multiple methods
-            rewardPack.click();
-            await wait(50);
-            rewardPack.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-            await wait(50);
-            rewardPack.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-            await wait(30);
-            rewardPack.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+            await clickSafe(rewardPack);
 
             log('✅ تم الضغط على البكج');
             await wait(1000); // Wait for pack to open
@@ -972,18 +999,18 @@
             await wait(500);
 
             // Click through any OK/Continue buttons after pack
-            for (let i = 0; i < 3; i++) {
+            for (let i = 0; i < 6; i++) {
                 await wait(300);
                 const okBtn = findElementByText('Ok', 'button') ||
                     findElementByText('OK', 'button') ||
                     findElementByText('Continue', 'button') ||
+                    findElementByText('Next', 'button') ||
+                    findElementByText('Done', 'button') ||
                     findElementByText('متابعة', 'button');
 
                 if (okBtn) {
                     log('🖱️ الضغط على زر OK/Continue...');
-                    okBtn.click();
-                    await wait(50);
-                    okBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                    await clickSafe(okBtn);
                 }
                 document.body.click();
             }
@@ -998,111 +1025,30 @@
             return true;
         }
 
-        // SECOND: If no pack found, search for Claim Rewards button
-        log('🔍 البحث عن زر Claim Rewards...');
-
-        let claimButton = null;
-
-        // Method 1: Search in footer for btn-standard primary
-        const footer = document.querySelector('footer');
-        if (footer) {
-            const buttons = footer.querySelectorAll('button.btn-standard.primary, button.btn-standard');
-            for (const btn of buttons) {
-                if (btn.textContent.includes('Claim Rewards') || btn.textContent.includes('Claim')) {
-                    claimButton = btn;
-                    log('✅ Found Claim Rewards in footer');
-                    break;
-                }
-            }
-        }
-
-        // Method 2: Search globally for Claim Rewards text
-        if (!claimButton) {
-            claimButton = findElementByText('Claim Rewards', 'button') ||
-                findElementByText('Claim', 'button') ||
+        // STEP 3: if no pack tile, try final close/continue clicks then validate closure
+        for (let i = 0; i < 6; i++) {
+            await wait(250);
+            const continueBtn = findElementByText('Continue', 'button') ||
+                findElementByText('Next', 'button') ||
+                findElementByText('Done', 'button') ||
+                findElementByText('OK', 'button') ||
                 findElementByText('Ok', 'button') ||
-                findElementByText('OK', 'button');
-            if (claimButton) {
-                log('✅ Found Claim Rewards via text search');
+                findElementByText('متابعة', 'button');
+
+            if (continueBtn && continueBtn.offsetParent !== null) {
+                await clickSafe(continueBtn);
             }
+            document.body.click();
         }
 
-        // Method 3: Try common reward button selectors
-        if (!claimButton) {
-            const selectors = [
-                'button.ut-button',
-                'button.btn-standard.primary',
-                'button[class*="call-to-action"]',
-                '.ut-navigation-button-control'
-            ];
-
-            for (const selector of selectors) {
-                const btn = document.querySelector(selector);
-                if (btn && (btn.textContent.includes('Claim') || btn.textContent.includes('Ok') || btn.textContent.includes('OK'))) {
-                    claimButton = btn;
-                    log(`✅ Found via selector: ${selector}`);
-                    break;
-                }
-            }
-        }
-
-        if (claimButton) {
-            log('✅ تم العثور على زر Claim Rewards');
-
-            // Scroll to button
-            claimButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            await wait(200);
-
-            // Highlight
-            claimButton.style.outline = '3px solid #fbbf24';
-            await wait(150);
-            claimButton.style.outline = '';
-
-            // Click using multiple methods
-            log('🖱️ الضغط على زر Claim Rewards...');
-            claimButton.click();
-            await wait(50);
-            claimButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-            await wait(50);
-            claimButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-            await wait(30);
-            claimButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-
-            log('⏳ انتظار معالجة المكافآت...');
-            await wait(500);
-
-            // Try clicking through any additional screens (OK, Continue, etc.)
-            for (let i = 0; i < 3; i++) {
-                await wait(300);
-
-                const okBtn = findElementByText('Ok', 'button') ||
-                    findElementByText('OK', 'button') ||
-                    findElementByText('Continue', 'button') ||
-                    findElementByText('متابعة', 'button');
-
-                if (okBtn) {
-                    log('🖱️ الضغط على زر OK/Continue...');
-                    okBtn.click();
-                    await wait(50);
-                    okBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-                }
-
-                // Click anywhere on screen to skip animations
-                document.body.click();
-            }
-
-            const rewardsClosed = await waitForRewardsToClose();
-            if (!rewardsClosed) {
-                log('❌ لم يتم إغلاق شاشة المكافآت بعد Claim Rewards');
-                return false;
-            }
-
-            log('✅ تم استلام المكافآت');
-            return true;
-        } else {
-            log('❌ لم يتم العثور على البكج أو زر Claim Rewards');
+        const rewardsClosed = await waitForRewardsToClose();
+        if (!rewardsClosed) {
+            log('❌ لم يتم إغلاق شاشة المكافآت (Claim/Pack لم يكتمل)');
             return false;
         }
+
+        log('✅ تم استلام المكافآت');
+        return true;
     }
 
     // ========== فتح البكجات ==========
@@ -1367,23 +1313,10 @@
 
             log(`🔁 دورة ${i + 1}/${totalCycles}`);
 
-            let success = false;
-
-            // Self-heal: retry the cycle once if first attempt fails
-            for (let attempt = 1; attempt <= 2; attempt++) {
-                if (!isRunning) break;
-
-                if (attempt > 1) {
-                    log(`🔄 إعادة محاولة الدورة الحالية (${attempt}/2)...`);
-                    await wait(500);
-                }
-
-                success = await completeSBCCycle(targetSBCName);
-                if (success) break;
-            }
+            const success = await completeSBCCycle(targetSBCName);
 
             if (!success) {
-                log('❌ فشلت الدورة بعد إعادة المحاولة - إيقاف السكربت');
+                log('❌ فشلت الدورة الحالية - إيقاف السكربت');
                 break;
             }
 
