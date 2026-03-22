@@ -22,7 +22,14 @@
 
     async function clickElement(selector, maxRetries = 5) {
         for (let i = 0; i < maxRetries; i++) {
-            const elements = document.querySelectorAll(selector);
+            let elements = [];
+            try {
+                elements = document.querySelectorAll(selector);
+            } catch (err) {
+                console.log(`❌ Invalid selector: ${selector}`);
+                return false;
+            }
+
             for (const element of elements) {
                 if (element && element.offsetParent !== null) {
                     element.click();
@@ -237,7 +244,6 @@
             'button.ut-tab-bar-item.icon-sbc',
             'a[href*="sbc"]',
             'button[class*="sbc"]',
-            '.ut-navigation-button-control:contains("SBC")',
             '.icon-sbc'
         ];
 
@@ -1207,7 +1213,9 @@
             '.ut-sbc-challenge-title-view .title',
             '.ut-sbc-set-header-view .title',
             '.ut-sbc-set-header .title',
-            '.ut-navigation-breadcrumb .title'
+            '.ut-navigation-breadcrumb .title',
+            '.ut-sbc-challenges .title',
+            '.sbc-header .title'
         ];
 
         for (const selector of selectors) {
@@ -1216,6 +1224,18 @@
             if (text && text.length > 2 && !/^submit|exchange$/i.test(text)) {
                 return text;
             }
+        }
+
+        // Fallback: scan visible heading-like nodes and pick first clean candidate
+        const headingCandidates = Array.from(document.querySelectorAll('h1, h2, h3, .title, [class*="header"]'))
+            .filter(el => el && el.offsetParent !== null && !el.closest('#sbc-auto-ui'))
+            .map(el => (el.textContent || '').trim())
+            .filter(text => text.length >= 3)
+            .filter(text => !/^submit|exchange|claim|rewards?$/i.test(text))
+            .filter(text => !/^(squad|challenge|challenges)$/i.test(text));
+
+        if (headingCandidates.length > 0) {
+            return headingCandidates[0];
         }
 
         return currentSBC?.name || '';
@@ -1232,10 +1252,14 @@
             return false;
         }
 
+        const selectedName = document.getElementById('sbc-select')?.value;
         const detectedName = detectCurrentOpenedSBCName();
-        currentSBC = { name: detectedName || 'SBC الحالي' };
+        const effectiveName = detectedName || (selectedName && selectedName !== '__none__' && selectedName !== '-1' ? selectedName : 'SBC الحالي');
+        currentSBC = { name: effectiveName };
         if (detectedName) {
             log(`✅ تم التعرف على التحدي المفتوح: ${detectedName}`);
+        } else if (selectedName && selectedName !== '__none__' && selectedName !== '-1') {
+            log(`✅ استخدام الاسم المختار من القائمة: ${selectedName}`);
         } else {
             log('⚠️ لم يتم التعرف على الاسم، سيتم التنفيذ على التحدي المفتوح الحالي');
         }
@@ -1376,13 +1400,25 @@
             if (i === 0) {
                 success = await completeOpenedChallengeCycle();
             } else {
-                const knownName = currentSBC?.name && currentSBC.name !== 'SBC الحالي';
-                if (!knownName) {
-                    log('⚠️ لا يمكن إكمال التكرارات تلقائياً بدون اسم واضح للتحدي');
-                    log('💡 للمتابعة: اختر التحدي من القائمة أو اجعل التكرارات = 1');
-                    break;
+                // Preferred path: if a challenge is already open, run directly again.
+                if (isSBCChallengeOpen()) {
+                    success = await completeOpenedChallengeCycle();
+                } else {
+                    // Fallback path: try to resolve name again from current page context.
+                    const detectedName = detectCurrentOpenedSBCName();
+                    if (detectedName && detectedName.length > 2) {
+                        currentSBC = { name: detectedName };
+                    }
+
+                    const knownName = currentSBC?.name && currentSBC.name !== 'SBC الحالي';
+                    if (!knownName) {
+                        log('⚠️ لم أجد التحدي مفتوحاً ولا اسم واضح لإعادة الفتح تلقائياً');
+                        log('💡 افتح نفس التحدي يدوياً ثم اضغط "بدء من التحدي المفتوح"');
+                        break;
+                    }
+
+                    success = await completeSBCCycle(currentSBC.name);
                 }
-                success = await completeSBCCycle(currentSBC.name);
             }
 
             if (!success) {
@@ -1819,6 +1855,12 @@
         document.getElementById('start-current-btn').addEventListener('click', () => {
             const cyclesRaw = document.getElementById('cycles-input').value;
             const cycles = parseCyclesValue(cyclesRaw);
+
+            // Keep selected name as reliable fallback for repeat cycles.
+            const selectedName = document.getElementById('sbc-select').value;
+            if (selectedName && selectedName !== '__none__' && selectedName !== '-1') {
+                currentSBC = { name: selectedName };
+            }
 
             document.getElementById('start-btn').style.display = 'none';
             document.getElementById('stop-btn').style.display = 'block';
