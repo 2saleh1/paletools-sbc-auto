@@ -10,6 +10,7 @@
         WAIT_TIME: 800,
         CLICK_DELAY: 150
     };
+    const SCRIPT_VERSION = 'v1.8.0';
 
     // ========== المتغيرات ==========
     let isRunning = false;
@@ -1140,7 +1141,10 @@
         let rewardUIReady = false;
         for (let i = 0; i < 40; i++) { // 40 * 200ms = 8 seconds
             const rewardRoot = document.querySelector('.ut-pack-tile, .ut-tile-pack, .pack-item, .ut-reward-item, .ut-store-pack-details-view');
-            const claimBtnVisible = findElementByText('Claim Rewards', 'button') || findElementByText('Claim', 'button');
+            const claimBtnVisible = findElementByText('Claim Rewards', 'button') ||
+                findElementByText('Claim Reward', 'button') ||
+                findElementByText('Claim All', 'button') ||
+                findElementByText('Claim', 'button');
 
             if ((rewardRoot && rewardRoot.offsetParent !== null) || (claimBtnVisible && claimBtnVisible.offsetParent !== null)) {
                 rewardUIReady = true;
@@ -1150,6 +1154,36 @@
         }
 
         if (!rewardUIReady) {
+            // iOS sometimes auto-closes reward flow without showing pack UI.
+            log('⚠️ لم تظهر شاشة المكافآت بوضوح - محاولة متابعة آمنة...');
+
+            for (let i = 0; i < 6; i++) {
+                const continueBtn = findElementByText('Continue', 'button') ||
+                    findElementByText('Next', 'button') ||
+                    findElementByText('Done', 'button') ||
+                    findElementByText('OK', 'button') ||
+                    findElementByText('Ok', 'button') ||
+                    findElementByText('Claim Rewards', 'button') ||
+                    findElementByText('Claim Reward', 'button') ||
+                    findElementByText('Claim', 'button') ||
+                    findElementByText('متابعة', 'button');
+
+                if (continueBtn && continueBtn.offsetParent !== null) {
+                    await clickSafe(continueBtn);
+                }
+                document.body.click();
+                await wait(250);
+            }
+
+            const inSbcContext = !!document.querySelector(
+                '.ut-squad-builder-container, .ut-squad-pitch-view, .ut-sbc-squad-overview, .ut-sbc-set-tile-view, .ut-sbc-challenge-tile'
+            );
+
+            if (inSbcContext) {
+                log('✅ لم تظهر شاشة مكافآت منفصلة (iOS) وتم اعتبار الاستلام ناجحاً');
+                return true;
+            }
+
             log('❌ لم تظهر شاشة المكافآت بوضوح');
             return false;
         }
@@ -1163,6 +1197,8 @@
             const txt = (btn.textContent || '').trim().toLowerCase();
             if (
                 txt.includes('claim rewards') ||
+                txt.includes('claim reward') ||
+                txt.includes('claim all') ||
                 txt === 'claim' ||
                 txt.includes('collect') ||
                 txt.includes('استلام') ||
@@ -1513,14 +1549,14 @@
                 const targetTokens = normalized.split(' ').filter(word => word.length >= 4);
                 const matchedTokens = targetTokens.filter(word => tileNormalized.includes(word));
                 const hasStrongTokenMatch = targetTokens.length > 0 && matchedTokens.length >= Math.max(2, targetTokens.length - 1);
-                
+
                 if (hasExactMatch || hasStrongIncludes || hasStrongTokenMatch) {
                     log(`✅ وجدت: ${tileRawName}`);
-                    
+
                     // Scroll into view and click
                     tile.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     await wait(300);
-                    
+
                     // Try multiple times if first attempt doesn't open the challenge
                     for (let clickAttempt = 1; clickAttempt <= 3; clickAttempt++) {
                         // Try multiple click methods
@@ -1532,7 +1568,7 @@
                         tile.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
                         await wait(150);
                         tile.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-                        
+
                         // Poll for the challenge to actually open (like goToSBCSection does)
                         log('⏳ انتظار فتح التحدي...');
                         let openAttempts = 0;
@@ -1540,7 +1576,7 @@
                             await wait(300);
                             openAttempts++;
                         }
-                        
+
                         if (isSBCChallengeOpen()) {
                             log(`✅ تم فتح التحدي (محاولة ${clickAttempt}, بعد ${openAttempts * 300}ms)`);
                             return true;
@@ -1549,7 +1585,7 @@
                             await wait(500);
                         }
                     }
-                    
+
                     log(`❌ فشل فتح التحدي بعد 3 محاولات نقر`);
                     return false;
                 }
@@ -1802,6 +1838,14 @@
                     color: #dff866;
                     letter-spacing: 0.2px;
                 }
+
+                #sbc-auto-ui .version {
+                    margin-top: -6px;
+                    margin-bottom: 8px;
+                    font-size: 10px;
+                    color: #9cadb5;
+                    letter-spacing: 0.4px;
+                }
                 
                 #sbc-auto-ui .stats {
                     background: rgba(10, 12, 14, 0.6);
@@ -2025,6 +2069,7 @@
             </style>
             
             <h3>SBC Auto Completer</h3>
+            <div class="version">${SCRIPT_VERSION}</div>
             
             <div class="stats">
                 <div class="stat-item">
@@ -2165,16 +2210,17 @@
                 transform: translateX(-50%);
                 width: 48px;
                 height: 48px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
+                background: linear-gradient(145deg, #0f1720 0%, #1f2a33 100%);
+                color: #d6f7b2;
                 border-radius: 50%;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 font-size: 12px;
                 font-weight: 700;
+                border: 1px solid rgba(159, 255, 80, 0.55);
                 cursor: pointer;
-                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35), 0 0 0 2px rgba(159, 255, 80, 0.14);
                 z-index: 999999;
                 transition: all 0.2s;
             `;
